@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Daily Learn — one complex topic a day, taught like you're 10, with quizzes." />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Daily Learn" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <title>Daily Learn</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">📖</div>
+        <span>Daily Learn</span>
+      </div>
+      <div class="chip" id="streakChip">🔥 <strong>0</strong> streak</div>
+    </header>
+
+    <section class="screen active" id="screen-home" aria-label="Home">
+      <article class="hero-card">
+        <p class="kicker" id="dateLabel">Today</p>
+        <div class="topic-emoji" id="topicEmoji">✨</div>
+        <h1 id="topicTitle">Today's topic</h1>
+        <p class="blurb" id="topicBlurb">Loading…</p>
+        <div class="stats">
+          <div class="stat"><div class="label">Streak</div><div class="value" id="statStreak">0</div></div>
+          <div class="stat"><div class="label">Days learned</div><div class="value" id="statDone">0</div></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="startBtn">Start today's lesson</button>
+        <p class="footer-note" id="homeStatus">One topic per day · Sydney calendar date</p>
+        <p class="install-hint" id="installHint">Tip: on iPhone, tap Share → Add to Home Screen.</p>
+      </article>
+      <p class="footer-note">Topics are deterministic from the Australia/Sydney date. Same day = same topic.</p>
+    </section>
+
+    <section class="screen" id="screen-lesson" aria-label="Lesson">
+      <div class="section-meta">
+        <span id="lessonTopic">Topic</span>
+        <span class="pill" id="lessonStep">Section 1</span>
+      </div>
+      <div class="progress-rail" id="progressRail" aria-hidden="true"></div>
+      <article class="card">
+        <h2 id="lessonTitle">Section</h2>
+        <div class="block"><h3>🪄 Metaphor</h3><p id="metaphorText"></p></div>
+        <div class="block"><h3>💡 Simple explanation</h3><p id="explainText"></p></div>
+        <div class="block"><h3>📎 Example</h3><p id="exampleText"></p></div>
+        <div class="row">
+          <button type="button" class="btn btn-ghost" id="homeFromLesson">Home</button>
+          <button type="button" class="btn btn-primary" id="toQuizBtn">Quiz me</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="screen" id="screen-quiz" aria-label="Quiz">
+      <div class="section-meta">
+        <span id="quizTopic">Topic</span>
+        <span class="pill" id="quizStep">Quiz 1</span>
+      </div>
+      <article class="card">
+        <p class="kicker">Check understanding</p>
+        <h2 id="quizQuestion">Question</h2>
+        <div class="choices" id="choices" role="group" aria-label="Answer choices"></div>
+        <div class="feedback" id="feedback" role="status"></div>
+        <div class="row">
+          <button type="button" class="btn btn-primary" id="checkBtn" disabled>Check answer</button>
+          <button type="button" class="btn btn-primary" id="nextBtn" hidden>Next section</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="screen" id="screen-done" aria-label="Complete">
+      <article class="card celebrate">
+        <div class="big" id="doneEmoji">🎉</div>
+        <h1 id="doneTitle">Lesson complete!</h1>
+        <p class="blurb" id="doneTopic"></p>
+        <div class="stats" style="text-align:left">
+          <div class="stat"><div class="label">Score</div><div class="value" id="doneScore">0 / 3</div></div>
+          <div class="stat"><div class="label">Streak</div><div class="value" id="doneStreak">🔥 0</div></div>
+        </div>
+        <div class="row">
+          <button type="button" class="btn btn-secondary" id="againBtn">Review again</button>
+          <button type="button" class="btn btn-primary" id="backHomeBtn">Home</button>
+        </div>
+        <p class="footer-note">Come back tomorrow for a new topic. Streaks use Sydney dates.</p>
+      </article>
+    </section>
+  </div>
+  <script src="content.js"></script>
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      var standalone = window.navigator.standalone === true;
+      if (isIos && !standalone) {
+        var el = document.getElementById("installHint");
+        if (el) el.classList.add("show");
+      }
+    })();
+  </script>
+</body>
+</html>
