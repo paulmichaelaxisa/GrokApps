@@ -1,8 +1,11 @@
 /* Daily Learn — offline shell */
-const CACHE = "daily-learn-v5";
+const CACHE = "daily-learn-v6";
 const SHELL = [
   "./", "./index.html", "./styles.css", "./app.js", "./content.js",
-  "./content-a1.gz.js", "./content-a2.gz.js", "./content-b1.gz.js", "./content-b2.gz.js",
+  "./topics/topic-01.js", "./topics/topic-02.js", "./topics/topic-03.js", "./topics/topic-04.js",
+  "./topics/topic-05.js", "./topics/topic-06.js", "./topics/topic-07.js", "./topics/topic-08.js",
+  "./topics/topic-09.js", "./topics/topic-10.js", "./topics/topic-11.js", "./topics/topic-12.js",
+  "./topics/topic-13.js", "./topics/topic-14.js", "./topics/topic-15.js", "./topics/topic-16.js",
   "./manifest.json", "./icons/icon.svg"
 ];
 self.addEventListener("install", (e) => {
