@@ -1,4 +1,4 @@
-/* Daily Learn — offline shell service worker */
+/* Daily Learn — offline shell */
 const CACHE = "daily-learn-v1";
 const SHELL = [
   "./",
@@ -9,30 +9,23 @@ const SHELL = [
   "./manifest.json",
   "./icons/icon.svg"
 ];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting())
+self.addEventListener("install", (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+});
+self.addEventListener("activate", (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.method !== "GET") return;
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const networked = fetch(req)
+self.addEventListener("fetch", (e) => {
+  if (e.request.method !== "GET") return;
+  e.respondWith(
+    caches.match(e.request).then((cached) => {
+      const networked = fetch(e.request)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+          caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
           return res;
         })
         .catch(() => cached);

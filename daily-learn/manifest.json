@@ -1,7 +1,7 @@
 {
   "name": "Daily Learn",
   "short_name": "DailyLearn",
-  "description": "One complex topic a day, taught like you're 10 \u2014 with quizzes.",
+  "description": "One complex topic a day, taught like you're 10 — with quizzes.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -13,12 +13,6 @@
     {
       "src": "icons/icon.svg",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon.svg",
-      "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any"
     },
