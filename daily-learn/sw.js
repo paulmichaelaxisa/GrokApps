@@ -1,17 +1,9 @@
 /* Daily Learn — offline shell */
-const CACHE = "daily-learn-v4";
+const CACHE = "daily-learn-v5";
 const SHELL = [
-  "./",
-  "./index.html",
-  "./styles.css",
-  "./app.js",
-  "./content.js",
-  "./content-a1.js",
-  "./content-a2.js",
-  "./content-b1.js",
-  "./content-b2.js",
-  "./manifest.json",
-  "./icons/icon.svg"
+  "./", "./index.html", "./styles.css", "./app.js", "./content.js",
+  "./content-a1.gz.js", "./content-a2.gz.js", "./content-b1.gz.js", "./content-b2.gz.js",
+  "./manifest.json", "./icons/icon.svg"
 ];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
