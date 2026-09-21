@@ -1,11 +1,13 @@
 /* Daily Learn — offline shell */
-const CACHE = "daily-learn-v1";
+const CACHE = "daily-learn-v2";
 const SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./content.js",
+  "./content-a.js",
+  "./content-b.js",
   "./manifest.json",
   "./icons/icon.svg"
 ];
