@@ -236,6 +236,10 @@
     navigator.serviceWorker.register("./sw.js").catch(function () {});
   }
   function init() {
+    if (!(window.DAILY_LEARN_TOPICS && window.DAILY_LEARN_TOPICS.length)) {
+      setTimeout(init, 40);
+      return;
+    }
     bind();
     renderHome();
     registerSW();
