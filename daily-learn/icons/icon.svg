@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Daily Learn">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="240" fill="url(#g)"/>
+  <path d="M150 180h90c20 0 36 12 36 32v160c-18-12-40-18-62-18H150V180z" fill="#fff" opacity=".95"/>
+  <path d="M362 180h-90c-20 0-36 12-36 32v160c18-12 40-18 62-18h64V180z" fill="#eef2ff"/>
+  <rect x="248" y="180" width="16" height="192" rx="4" fill="#c7d2fe"/>
+  <path d="M256 110l12 28 30 4-22 20 6 30-26-14-26 14 6-30-22-20 30-4z" fill="#fde68a"/>
+</svg>
