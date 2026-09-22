@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Liam Words — toddler word practice with pictures, pronunciation, and Auslan Signbank links." />
+  <meta name="theme-color" content="#5B8DEF" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Liam Words" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <title>Liam Words</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <button type="button" class="icon-btn" id="backBtn" hidden aria-label="Back to words">←</button>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">🗣️</span>
+        <span class="brand-text">Liam Words</span>
+      </div>
+      <span class="chip" id="stepChip" hidden>1 / 3</span>
+    </header>
+
+    <!-- HOME: word picker -->
+    <section class="screen active" id="screen-home" aria-label="Word picker">
+      <div class="hero">
+        <p class="kicker">For Liam · with Dad</p>
+        <h1>Pick a word</h1>
+        <p class="blurb">Picture → Say it → Auslan tip</p>
+      </div>
+      <div class="word-grid" id="wordGrid" role="list"></div>
+      <p class="footer-note">
+        Auslan signs should be checked on
+        <a href="https://auslan.org.au/dictionary/" target="_blank" rel="noopener noreferrer">Signbank</a>
+        / with Liam’s therapists.
+      </p>
+      <p class="install-hint">Tip: on iPhone, Share → Add to Home Screen.</p>
+    </section>
+
+    <!-- WORD FLOW -->
+    <section class="screen" id="screen-word" aria-label="Word practice" hidden>
+      <div class="progress-dots" id="progressDots" aria-label="Steps">
+        <span class="dot" data-step="0" aria-label="Picture"></span>
+        <span class="dot" data-step="1" aria-label="Say it"></span>
+        <span class="dot" data-step="2" aria-label="Auslan"></span>
+      </div>
+
+      <!-- Step 1: Picture -->
+      <article class="card step-panel" id="step-picture" data-step="0">
+        <p class="step-label">Picture</p>
+        <div class="picture-wrap" id="pictureArt" aria-hidden="true"></div>
+        <h2 class="word-title" id="pictureWord">Milk</h2>
+        <p class="hint">Look! Big picture.</p>
+      </article>
+
+      <!-- Step 2: Say it -->
+      <article class="card step-panel" id="step-say" data-step="1" hidden>
+        <p class="step-label">Say it</p>
+        <div class="mouth-visual" aria-hidden="true">
+          <svg viewBox="0 0 160 120" width="140" height="105" role="img" aria-label="Speaker mouth">
+            <ellipse cx="80" cy="55" rx="48" ry="40" fill="#FFD6A5"/>
+            <ellipse cx="80" cy="62" rx="28" ry="18" fill="#FF8FAB"/>
+            <ellipse cx="80" cy="62" rx="18" ry="10" fill="#FF5C8A"/>
+            <circle cx="58" cy="42" r="5" fill="#333"/>
+            <circle cx="102" cy="42" r="5" fill="#333"/>
+            <path d="M30 70 Q10 55 8 40" stroke="#5B8DEF" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <path d="M130 70 Q150 55 152 40" stroke="#5B8DEF" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <path d="M25 85 Q5 75 5 55" stroke="#5B8DEF" stroke-width="3" fill="none" stroke-linecap="round" opacity=".6"/>
+            <path d="M135 85 Q155 75 155 55" stroke="#5B8DEF" stroke-width="3" fill="none" stroke-linecap="round" opacity=".6"/>
+          </svg>
+        </div>
+        <h2 class="word-title" id="sayWord">Milk</h2>
+        <div class="chunks" id="chunks" aria-label="Sound chunks"></div>
+        <button type="button" class="btn btn-speak" id="speakBtn">
+          <span class="speak-icon" aria-hidden="true">🔊</span>
+          Speak slowly
+        </button>
+        <p class="hint">Dad models · Liam watches lips</p>
+      </article>
+
+      <!-- Step 3: Auslan -->
+      <article class="card step-panel" id="step-auslan" data-step="2" hidden>
+        <p class="step-label">Auslan</p>
+        <div class="hands-placeholder" id="handsArt" aria-hidden="true"></div>
+        <p class="placeholder-badge">Practice with Signbank · not an official diagram</p>
+        <h2 class="word-title" id="auslanWord">Milk</h2>
+        <div class="tip-box">
+          <p class="tip-label">Parent tip</p>
+          <p class="tip-text" id="auslanTip"></p>
+        </div>
+        <a class="btn btn-signbank" id="signbankLink" href="#" target="_blank" rel="noopener noreferrer">
+          See Auslan Signbank
+        </a>
+        <p class="hint subtle">Confirm handshape & movement with therapists.</p>
+      </article>
+
+      <nav class="nav-row">
+        <button type="button" class="btn btn-ghost" id="prevBtn" disabled>Back</button>
+        <button type="button" class="btn btn-primary" id="nextBtn">Next</button>
+      </nav>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
