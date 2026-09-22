@@ -4,7 +4,8 @@
 (function () {
   "use strict";
 
-  const { SIGNBANK_SEARCH, ART, HANDS, WORDS } = window.LIAM_WORDS_DATA;
+  const { ART, HANDS } = window.LIAM_ART;
+  const { SIGNBANK_SEARCH, WORDS } = window.LIAM_WORDS;
 
   // --- State ---
   let currentWord = null;
@@ -48,11 +49,13 @@
   }
 
   function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
+    const map = {
+      "&": "&" + "amp;",
+      "<": "&" + "lt;",
+      ">": "&" + "gt;",
+      '"': "&" + "quot;",
+    };
+    return String(s).replace(/[&<>"]/g, (ch) => map[ch]);
   }
 
   function openWord(w) {
