@@ -1,10 +1,10 @@
 /* Liam Words — toddler PWA prototype
-   Auslan tips are parent guidance only — always confirm on Signbank. */
+   Auslan: open Signbank video only — no in-app tips or hand diagrams. */
 
 (function () {
   "use strict";
 
-  const { ART, HANDS } = window.LIAM_ART;
+  const { ART } = window.LIAM_ART;
   const { SIGNBANK_SEARCH, WORDS } = window.LIAM_WORDS;
 
   // --- State ---
@@ -111,15 +111,14 @@
       chunksEl.appendChild(span);
     });
 
-    // Auslan
-    $("handsArt").innerHTML = HANDS.default;
+    // Auslan — Signbank link only
     $("auslanWord").textContent = w.label;
-    $("auslanTip").textContent = w.auslanTip;
     const link = $("signbankLink");
-    link.href = SIGNBANK_SEARCH + encodeURIComponent(w.label);
+    link.href =
+      w.signbankUrl || SIGNBANK_SEARCH + encodeURIComponent(w.label);
     link.setAttribute(
       "aria-label",
-      `See Auslan Signbank for ${w.label}`
+      `Watch Auslan Signbank video for ${w.label}`
     );
 
     prevBtn.disabled = step === 0;
