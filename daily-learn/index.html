@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="Daily Learn — one complex topic a day, taught like you're 10, with quizzes." />
+  <meta name="description" content="Daily Learn — unique educational micro-lessons with quizzes, powered by Grok when you add an xAI key." />
   <meta name="theme-color" content="#6366f1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -23,24 +23,35 @@
         <div class="brand-mark" aria-hidden="true">📖</div>
         <span>Daily Learn</span>
       </div>
-      <div class="chip" id="streakChip">🔥 <strong>0</strong> streak</div>
+      <div class="topbar-actions">
+        <div class="chip" id="streakChip">🔥 <strong>0</strong> streak</div>
+        <button type="button" class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings">⚙️</button>
+      </div>
     </header>
+
+    <div class="banner" id="offlineBanner" hidden role="status">
+      Using offline topic — add an xAI key in Settings for AI topics
+    </div>
 
     <section class="screen active" id="screen-home" aria-label="Home">
       <article class="hero-card">
         <p class="kicker" id="dateLabel">Today</p>
-        <div class="topic-emoji" id="topicEmoji">✨</div>
-        <h1 id="topicTitle">Today's topic</h1>
-        <p class="blurb" id="topicBlurb">Loading…</p>
+        <div id="loadingState" class="loading-state" hidden>Thinking up a new topic…</div>
+        <div id="topicBlock">
+          <div class="topic-emoji" id="topicEmoji">✨</div>
+          <h1 id="topicTitle">Today's topic</h1>
+          <p class="blurb" id="topicBlurb">Loading…</p>
+        </div>
         <div class="stats">
           <div class="stat"><div class="label">Streak</div><div class="value" id="statStreak">0</div></div>
           <div class="stat"><div class="label">Days learned</div><div class="value" id="statDone">0</div></div>
         </div>
-        <button type="button" class="btn btn-primary" id="startBtn">Start today's lesson</button>
-        <p class="footer-note" id="homeStatus">One topic per day · Sydney calendar date</p>
+        <button type="button" class="btn btn-primary" id="startBtn" disabled>Start lesson</button>
+        <button type="button" class="btn btn-secondary" id="newTopicBtn">New topic</button>
+        <p class="footer-note" id="homeStatus">Unique topic each open · finish a lesson to keep your streak</p>
         <p class="install-hint" id="installHint">Tip: on iPhone, tap Share → Add to Home Screen.</p>
       </article>
-      <p class="footer-note">Topics are deterministic from the Australia/Sydney date. Same day = same topic.</p>
+      <p class="footer-note">With an xAI key, each open invents a fresh lesson. Curated topics are the offline fallback.</p>
     </section>
 
     <section class="screen" id="screen-lesson" aria-label="Lesson">
@@ -91,10 +102,30 @@
           <button type="button" class="btn btn-secondary" id="againBtn">Review again</button>
           <button type="button" class="btn btn-primary" id="backHomeBtn">Home</button>
         </div>
-        <p class="footer-note">Come back tomorrow for a new topic. Streaks use Sydney dates.</p>
+        <p class="footer-note">Tap New topic anytime for another lesson. Streaks use Sydney calendar dates.</p>
       </article>
     </section>
   </div>
+
+  <div id="settingsPanel" class="settings-panel" hidden aria-hidden="true">
+    <div class="settings-backdrop" id="settingsBackdrop"></div>
+    <div class="settings-sheet" role="dialog" aria-labelledby="settingsTitle">
+      <div class="settings-head">
+        <h2 id="settingsTitle">Settings</h2>
+        <button type="button" class="icon-btn" id="settingsClose" aria-label="Close">✕</button>
+      </div>
+      <p class="settings-lead">Paste your xAI API key to generate a unique topic on every open. The key stays only in this device’s browser storage — never in the app repo.</p>
+      <label class="field-label" for="apiKeyInput">xAI API key</label>
+      <input type="password" id="apiKeyInput" class="field-input" autocomplete="off" spellcheck="false" placeholder="xai-… paste your key" />
+      <p class="key-status unset" id="keyStatus">Key not set</p>
+      <div class="row settings-actions">
+        <button type="button" class="btn btn-secondary" id="settingsClear">Clear</button>
+        <button type="button" class="btn btn-primary" id="settingsSave">Save key</button>
+      </div>
+      <p class="footer-note"><a href="https://console.x.ai" target="_blank" rel="noopener noreferrer">Get a key at console.x.ai</a></p>
+    </div>
+  </div>
+
   <script src="topics/topic-01.js"></script>
   <script src="topics/topic-02.js"></script>
   <script src="topics/topic-03.js"></script>
@@ -112,6 +143,7 @@
   <script src="topics/topic-15.js"></script>
   <script src="topics/topic-16.js"></script>
   <script src="content.js"></script>
+  <script src="ai.js"></script>
   <script src="app.js"></script>
   <script>
     (function () {
