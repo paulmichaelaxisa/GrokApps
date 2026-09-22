@@ -1,5 +1,5 @@
 /* Liam Words — basic offline shell */
-const CACHE = "liam-words-v1";
+const CACHE = "liam-words-v2";
 const ASSETS = [
   "./",
   "./index.html",
