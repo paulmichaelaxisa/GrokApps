@@ -6,14 +6,15 @@ Non-game apps and scripts built with (and for) Grok.
 
 ### [Daily Learn](./daily-learn/)
 
-A mobile-first Progressive Web App that teaches **one complex topic per day** in simple language — like you're 10 years old — then quizzes you after each section.
+A mobile-first Progressive Web App that teaches **complex topics in simple language** — like you're 10 years old — then quizzes you after each section.
 
-- **Flow:** Home (today's topic + streak) → lesson sections (metaphor, explanation, example) → quiz after each section → celebration
-- **Daily topic:** Deterministic from the **Australia/Sydney** calendar date (`YYYY-MM-DD`). The same date always shows the same topic.
-- **Progress:** Streak, completed dates, and quiz scores stored in `localStorage`
+- **Flow:** Home (topic + streak) → lesson sections (metaphor, explanation, example) → quiz after each section → celebration
+- **Topics:** On each fresh open / reload (and via **New topic**), the app asks the **xAI / Grok API** for a unique micro-lesson. Curated topics in `topics/` remain the **offline fallback**.
+- **API key (phone):** Open Daily Learn → tap ⚙️ → paste your key from [console.x.ai](https://console.x.ai) → **Save key**. Stored only in this device’s `localStorage` as `daily-learn-xai-key` — never committed to the repo. Clear removes it. Without a key (or if the API fails), you get a random curated topic and a gentle offline banner.
+- **Progress:** Streak and completions use Australia/Sydney calendar dates; finishing a lesson still counts toward streak. Recent AI titles (~30) are remembered so new topics stay fresh.
 - **PWA:** Installable (`manifest.json`), offline shell via service worker, Apple mobile web app meta tags
 
-**Phone preview:** [raw.githack Daily Learn](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/daily-learn/index.html)
+**Phone preview (cache-bust):** [raw.githack Daily Learn](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/daily-learn/index.html?v=ai1)
 
 **GitHub Pages tip:** enable Pages for this repo with source **Deploy from a branch**, folder `/` (root), then visit `/daily-learn/` and `/liam-words/`.
 
