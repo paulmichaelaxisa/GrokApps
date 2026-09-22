@@ -19,12 +19,12 @@ A mobile-first Progressive Web App that teaches **one complex topic per day** in
 
 ### [Liam Words](./liam-words/)
 
-Phone-first PWA prototype for toddler word practice: **Picture → Say it → Auslan tip** (with Signbank links).
+Phone-first PWA prototype for toddler word practice: **Picture → Say it → Auslan video** (Signbank links only).
 
 - **Audience:** Liam (~2) with Dad — huge tap targets, soft colours, one step at a time
 - **Vocabulary (v1):** mummy, daddy, milk, more, ball, dog, water, bye, eat, book, car, sleep
 - **Pronunciation:** phonetic chunks + Web Speech API (slow rate, tap to speak)
-- **Auslan:** parent tips only — always confirm on [Auslan Signbank](https://auslan.org.au/dictionary/); placeholder hand art is not official
+- **Auslan:** no in-app sign diagrams or invented tips — opens the official [Auslan Signbank](https://auslan.org.au/dictionary/) video; confirm with therapists / teachers of the deaf
 - **PWA:** manifest, basic service worker, Apple mobile web app meta
 
 **Phone preview (use this — jsDelivr shows source code):** [raw.githack Liam Words](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/liam-words/index.html)
