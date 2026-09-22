@@ -1,4 +1,4 @@
-/* Liam Words — illustrations (original SVG). */
+/* Liam Words — illustrations (original SVG). Word pictures only; no Auslan hand diagrams. */
 (function (g) {
   "use strict";
   const ART = {
@@ -16,9 +16,5 @@
     sleep: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"> <ellipse cx="60" cy="78" rx="42" ry="24" fill="#C9A0DC"/> <circle cx="60" cy="50" r="28" fill="#FFD6A5"/> <path d="M46 48 Q50 52 54 48" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/> <path d="M66 48 Q70 52 74 48" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/> <path d="M52 60 Q60 66 68 60" stroke="#E07A5F" stroke-width="2.5" fill="none" stroke-linecap="round"/> <text x="92" y="32" font-size="18" fill="#5B8DEF" font-weight="800" font-family="system-ui">z</text> <text x="100" y="20" font-size="14" fill="#5B8DEF" font-weight="800" font-family="system-ui">z</text> </svg>`,
   };
 
-  /** Simple hand placeholder SVGs — illustrative only, not official Auslan. */
-  const HANDS = {
-    default: `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"> <text x="100" y="28" text-anchor="middle" font-size="12" fill="#5A6B7C" font-family="system-ui" font-weight="700">Illustrative placeholder</text> <ellipse cx="70" cy="85" rx="28" ry="32" fill="#FFD6A5" stroke="#E07A5F" stroke-width="2"/> <rect x="58" y="40" width="10" height="36" rx="5" fill="#FFD6A5" stroke="#E07A5F" stroke-width="1.5"/> <rect x="70" y="36" width="10" height="40" rx="5" fill="#FFD6A5" stroke="#E07A5F" stroke-width="1.5"/> <rect x="82" y="40" width="10" height="36" rx="5" fill="#FFD6A5" stroke="#E07A5F" stroke-width="1.5"/> <ellipse cx="140" cy="85" rx="28" ry="32" fill="#FFD6A5" stroke="#E07A5F" stroke-width="2"/> <rect x="128" y="40" width="10" height="36" rx="5" fill="#FFD6A5" stroke="#E07A5F" stroke-width="1.5"/> <rect x="140" y="36" width="10" height="40" rx="5" fill="#FFD6A5" stroke="#E07A5F" stroke-width="1.5"/> <rect x="152" y="40" width="10" height="36" rx="5" fill="#FFD6A5" stroke="#E07A5F" stroke-width="1.5"/> <path d="M95 75 L115 75" stroke="#5B8DEF" stroke-width="3" stroke-dasharray="4 3"/> </svg>`,
-  };
-  g.LIAM_ART = { ART, HANDS };
+  g.LIAM_ART = { ART };
 })(window);
