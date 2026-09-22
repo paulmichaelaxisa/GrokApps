@@ -94,6 +94,9 @@ body {
 .screen { display: none; flex-direction: column; flex: 1; }
 .screen.active { display: flex; }
 
+/* Ensure [hidden] wins over .card { display: flex } */
+[hidden] { display: none !important; }
+
 .hero {
   text-align: center;
   margin-bottom: 16px;
