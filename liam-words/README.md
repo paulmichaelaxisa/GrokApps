@@ -1,6 +1,6 @@
 # Liam Words
 
-Phone-first PWA prototype for toddler word practice (picture → say it → Auslan tip).
+Phone-first PWA prototype for toddler word practice (picture → say it → Auslan video).
 
 ## Open
 
@@ -14,7 +14,7 @@ mummy, daddy, milk, more, ball, dog, water, bye, eat, book, car, sleep
 
 ## Auslan note
 
-Tips are **parent guidance only**. Always confirm signs on [Auslan Signbank](https://auslan.org.au/dictionary/) and with Liam’s therapists. Placeholder hand graphics are **not** official diagrams.
+**No in-app sign diagrams or invented tips.** The Auslan step only links to the official [Auslan Signbank](https://auslan.org.au/dictionary/) video for each word. Always confirm with Liam’s therapists / teachers of the deaf.
 
 ## Stack
 
