@@ -17,6 +17,18 @@ Open locally: open [`daily-learn/index.html`](./daily-learn/index.html) in a bro
 
 **GitHub Pages tip:** enable Pages for this repo with source **Deploy from a branch**, folder `/daily-learn` (or `/` and visit `/daily-learn/`).
 
+### [Liam Words](./liam-words/)
+
+Phone-first PWA prototype for toddler word practice: **Picture → Say it → Auslan tip** (with Signbank links).
+
+- **Audience:** Liam (~2) with Dad — huge tap targets, soft colours, one step at a time
+- **Vocabulary (v1):** mummy, daddy, milk, more, ball, dog, water, bye, eat, book, car, sleep
+- **Pronunciation:** phonetic chunks + Web Speech API (slow rate)
+- **Auslan:** parent tips only — always confirm on [Auslan Signbank](https://auslan.org.au/dictionary/); placeholder hand art is not official
+- **PWA:** manifest, basic service worker, Apple mobile web app meta
+
+Open: [`liam-words/index.html`](./liam-words/index.html) or preview via [jsDelivr](https://cdn.jsdelivr.net/gh/paulmichaelaxisa/GrokApps@main/liam-words/index.html).
+
 ## License
 
 Content and code in this repo unless noted otherwise.
