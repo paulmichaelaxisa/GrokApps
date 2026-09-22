@@ -1,14 +1,21 @@
 (function () {
   "use strict";
+
   var STORAGE_KEY = "daily-learn-v1";
+  var API_KEY_STORAGE = "daily-learn-xai-key";
+  var RECENT_TITLES_KEY = "daily-learn-recent-titles";
+  var MAX_RECENT = 30;
   var TZ = "Australia/Sydney";
+
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
   function sydneyDateISO(d) {
     return new Intl.DateTimeFormat("en-CA", {
       timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit"
     }).format(d || new Date());
   }
+
   function formatNiceDate(iso) {
     var p = iso.split("-").map(Number);
     var utc = new Date(Date.UTC(p[0], p[1] - 1, p[2], 12));
@@ -16,20 +23,7 @@
       weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC"
     }).format(utc);
   }
-  function hashDate(iso) {
-    var h = 2166136261;
-    for (var i = 0; i < iso.length; i++) {
-      h ^= iso.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    return h >>> 0;
-  }
-  function topicForDate(iso) {
-    var topics = window.DAILY_LEARN_TOPICS || [];
-    if (!topics.length) return null;
-    var idx = hashDate(iso) % topics.length;
-    return { topic: topics[idx], index: idx };
-  }
+
   function loadState() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
     catch (e) { return {}; }
@@ -41,12 +35,41 @@
     if (!s.completedDates) s.completedDates = {};
     return s;
   }
+
+  function getApiKey() {
+    try { return (localStorage.getItem(API_KEY_STORAGE) || "").trim();
+    } catch (e) { return ""; }
+  }
+  function setApiKey(key) {
+    try {
+      if (key) localStorage.setItem(API_KEY_STORAGE, key);
+      else localStorage.removeItem(API_KEY_STORAGE);
+    } catch (e) {}
+  }
+
+  function getRecentTitles() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(RECENT_TITLES_KEY) || "[]");
+      return Array.isArray(arr) ? arr.filter(function (t) { return typeof t === "string"; }) : [];
+    } catch (e) { return []; }
+  }
+  function rememberTitle(title) {
+    if (!title) return;
+    var list = getRecentTitles().filter(function (t) {
+      return t.toLowerCase() !== title.toLowerCase();
+    });
+    list.unshift(title);
+    if (list.length > MAX_RECENT) list = list.slice(0, MAX_RECENT);
+    try { localStorage.setItem(RECENT_TITLES_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+
   function previousSydneyDate(iso) {
     var p = iso.split("-").map(Number);
     var dt = new Date(Date.UTC(p[0], p[1] - 1, p[2], 12));
     dt.setUTCDate(dt.getUTCDate() - 1);
     return dt.toISOString().slice(0, 10);
   }
+
   function recordCompletion(iso, score, total) {
     var state = ensureState();
     var already = !!state.completedDates[iso];
@@ -59,12 +82,21 @@
     saveState(state);
     return state;
   }
+
   function currentStreakDisplay(state, todayIso) {
     if (!state.lastCompletedDate) return 0;
     if (state.lastCompletedDate === todayIso) return state.streak || 0;
     if (state.lastCompletedDate === previousSydneyDate(todayIso)) return state.streak || 0;
     return 0;
   }
+
+  function pickRandomCurated() {
+    var topics = window.DAILY_LEARN_TOPICS || [];
+    if (!topics.length) return null;
+    var idx = Math.floor(Math.random() * topics.length);
+    return topics[idx];
+  }
+
   var runtime = {
     dateIso: sydneyDateISO(),
     topic: null,
@@ -72,31 +104,163 @@
     mode: "home",
     score: 0,
     answered: false,
-    selectedChoice: null
+    selectedChoice: null,
+    source: "offline",
+    loading: false,
+    loadToken: 0
   };
+
   function showScreen(id) {
     $$(".screen").forEach(function (el) { el.classList.toggle("active", el.id === id); });
   }
-  function renderHome() {
-    var found = topicForDate(runtime.dateIso);
-    runtime.topic = found.topic;
+
+  function setLoading(on) {
+    runtime.loading = !!on;
+    var banner = $("#offlineBanner");
+    var loadingEl = $("#loadingState");
+    var topicBlock = $("#topicBlock");
+    var startBtn = $("#startBtn");
+    var newBtn = $("#newTopicBtn");
+    if (loadingEl) loadingEl.hidden = !on;
+    if (topicBlock) topicBlock.hidden = !!on;
+    if (startBtn) startBtn.disabled = !!on || !runtime.topic;
+    if (newBtn) newBtn.disabled = !!on;
+    if (on && banner) banner.hidden = true;
+  }
+
+  function showOfflineBanner(show) {
+    var banner = $("#offlineBanner");
+    if (banner) banner.hidden = !show;
+  }
+
+  function updateHomeChrome() {
     var store = ensureState();
-    var doneToday = !!store.completedDates[runtime.dateIso];
     var streak = currentStreakDisplay(store, runtime.dateIso);
     var completedCount = Object.keys(store.completedDates).length;
+    var doneToday = !!store.completedDates[runtime.dateIso];
     $("#dateLabel").textContent = formatNiceDate(runtime.dateIso);
-    $("#streakChip").innerHTML = "🔥 <strong>" + streak + "</strong> streak";
-    $("#topicEmoji").textContent = runtime.topic.emoji;
-    $("#topicTitle").textContent = runtime.topic.title;
-    $("#topicBlurb").textContent = runtime.topic.blurb;
+    $("#streakChip").innerHTML = "\uD83D\uDD25 <strong>" + streak + "</strong> streak";
     $("#statStreak").textContent = String(streak);
     $("#statDone").textContent = String(completedCount);
-    $("#startBtn").textContent = doneToday ? "Review today's lesson" : "Start today's lesson";
-    $("#homeStatus").textContent = doneToday
-      ? ("Completed today · score " + store.completedDates[runtime.dateIso].score + "/" + store.completedDates[runtime.dateIso].total)
-      : "One topic per day · Sydney calendar date";
+    if (runtime.topic) {
+      $("#topicEmoji").textContent = runtime.topic.emoji;
+      $("#topicTitle").textContent = runtime.topic.title;
+      $("#topicBlurb").textContent = runtime.topic.blurb;
+      $("#startBtn").textContent = doneToday ? "Review lesson" : "Start lesson";
+      $("#startBtn").disabled = false;
+      var srcNote = runtime.source === "ai" ? "AI topic \u00b7 unique each open" : "Offline curated topic";
+      $("#homeStatus").textContent = doneToday
+        ? ("Completed today \u00b7 score " + store.completedDates[runtime.dateIso].score + "/" + store.completedDates[runtime.dateIso].total + " \u00b7 " + srcNote)
+        : (srcNote + " \u00b7 finish a lesson to keep your streak");
+    }
+  }
+
+  function renderHomeTopic() {
+    updateHomeChrome();
+    showOfflineBanner(runtime.source === "offline");
+    setLoading(false);
     showScreen("screen-home");
   }
+
+  function useOfflineTopic(reason) {
+    var topic = pickRandomCurated();
+    if (!topic) {
+      $("#topicEmoji").textContent = "\uD83D\uDCDA";
+      $("#topicTitle").textContent = "No topics available";
+      $("#topicBlurb").textContent = reason || "Add curated topics or an xAI key.";
+      runtime.topic = null;
+      setLoading(false);
+      showOfflineBanner(true);
+      showScreen("screen-home");
+      return;
+    }
+    runtime.topic = topic;
+    runtime.source = "offline";
+    rememberTitle(topic.title);
+    renderHomeTopic();
+  }
+
+  function loadTopic(forceNew) {
+    var token = ++runtime.loadToken;
+    var key = getApiKey();
+    showScreen("screen-home");
+    setLoading(true);
+    $("#loadingState").textContent = "Thinking up a new topic\u2026";
+    showOfflineBanner(false);
+
+    if (!key || !(window.DailyLearnAI && window.DailyLearnAI.generateTopic)) {
+      useOfflineTopic(key ? "AI helper missing" : "no key");
+      return;
+    }
+
+    window.DailyLearnAI.generateTopic({
+      apiKey: key,
+      avoidTitles: getRecentTitles()
+    }).then(function (topic) {
+      if (token !== runtime.loadToken) return;
+      runtime.topic = topic;
+      runtime.source = "ai";
+      rememberTitle(topic.title);
+      renderHomeTopic();
+    }).catch(function () {
+      if (token !== runtime.loadToken) return;
+      useOfflineTopic("api failed");
+    });
+  }
+
+  function maskKeyStatus() {
+    var key = getApiKey();
+    var status = $("#keyStatus");
+    var input = $("#apiKeyInput");
+    if (!status) return;
+    if (key) {
+      var tail = key.length > 4 ? key.slice(-4) : "****";
+      status.textContent = "Key set (\u2026" + tail + ")";
+      status.classList.add("set");
+      status.classList.remove("unset");
+      if (input) input.placeholder = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+    } else {
+      status.textContent = "Key not set";
+      status.classList.add("unset");
+      status.classList.remove("set");
+      if (input) input.placeholder = "xai-\u2026 paste your key";
+    }
+  }
+
+  function openSettings() {
+    var panel = $("#settingsPanel");
+    if (!panel) return;
+    panel.hidden = false;
+    panel.setAttribute("aria-hidden", "false");
+    maskKeyStatus();
+    var input = $("#apiKeyInput");
+    if (input) input.value = "";
+  }
+
+  function closeSettings() {
+    var panel = $("#settingsPanel");
+    if (!panel) return;
+    panel.hidden = true;
+    panel.setAttribute("aria-hidden", "true");
+  }
+
+  function saveSettingsKey() {
+    var input = $("#apiKeyInput");
+    var val = input ? input.value.trim() : "";
+    if (val) setApiKey(val);
+    maskKeyStatus();
+    if (input) input.value = "";
+    closeSettings();
+    loadTopic(true);
+  }
+
+  function clearSettingsKey() {
+    setApiKey("");
+    maskKeyStatus();
+    var input = $("#apiKeyInput");
+    if (input) input.value = "";
+  }
+
   function renderProgress() {
     var total = runtime.topic.sections.length;
     var rail = $("#progressRail");
@@ -111,6 +275,7 @@
       rail.appendChild(seg);
     }
   }
+
   function renderLesson() {
     var sec = runtime.topic.sections[runtime.sectionIndex];
     var n = runtime.sectionIndex + 1;
@@ -127,6 +292,7 @@
     renderProgress();
     showScreen("screen-lesson");
   }
+
   function renderQuiz() {
     var quiz = runtime.topic.sections[runtime.sectionIndex].quiz;
     runtime.mode = "quiz";
@@ -154,6 +320,7 @@
     renderProgress();
     showScreen("screen-quiz");
   }
+
   function selectChoice(i) {
     if (runtime.answered) return;
     runtime.selectedChoice = i;
@@ -162,6 +329,7 @@
     });
     $("#checkBtn").disabled = false;
   }
+
   function checkAnswer() {
     if (runtime.selectedChoice == null || runtime.answered) return;
     runtime.answered = true;
@@ -182,24 +350,27 @@
     var last = runtime.sectionIndex >= runtime.topic.sections.length - 1;
     next.textContent = last ? "See results" : "Next section";
   }
+
   function advance() {
     if (runtime.sectionIndex >= runtime.topic.sections.length - 1) finishDay();
     else { runtime.sectionIndex += 1; renderLesson(); }
   }
+
   function finishDay() {
     runtime.mode = "done";
     var total = runtime.topic.sections.length;
     var store = recordCompletion(runtime.dateIso, runtime.score, total);
     var streak = currentStreakDisplay(store, runtime.dateIso);
-    $("#doneEmoji").textContent = runtime.score === total ? "🏆" : "✨";
-    $("#doneTitle").textContent = runtime.score === total ? "Perfect day!" : "Lesson complete!";
+    $("#doneEmoji").textContent = runtime.score === total ? "\uD83C\uDFC6" : "\u2728";
+    $("#doneTitle").textContent = runtime.score === total ? "Perfect!" : "Lesson complete!";
     $("#doneScore").textContent = runtime.score + " / " + total + " quizzes correct";
-    $("#doneStreak").textContent = "🔥 " + streak + "-day streak";
+    $("#doneStreak").textContent = "\uD83D\uDD25 " + streak + "-day streak";
     $("#doneTopic").textContent = "You learned: " + runtime.topic.title;
     renderProgress();
     showScreen("screen-done");
     burstConfetti();
   }
+
   function burstConfetti() {
     var layer = $("#confetti");
     if (!layer) return;
@@ -215,41 +386,67 @@
     }
     setTimeout(function () { layer.innerHTML = ""; }, 3200);
   }
+
   function startLesson() {
+    if (!runtime.topic || runtime.loading) return;
     runtime.sectionIndex = 0;
     runtime.score = 0;
     runtime.answered = false;
     renderLesson();
   }
+
+  function goHome() {
+    updateHomeChrome();
+    showOfflineBanner(runtime.source === "offline");
+    setLoading(false);
+    showScreen("screen-home");
+  }
+
   function bind() {
     $("#startBtn").addEventListener("click", startLesson);
     $("#toQuizBtn").addEventListener("click", renderQuiz);
     $("#checkBtn").addEventListener("click", checkAnswer);
     $("#nextBtn").addEventListener("click", advance);
-    $("#backHomeBtn").addEventListener("click", renderHome);
+    $("#backHomeBtn").addEventListener("click", goHome);
     $("#againBtn").addEventListener("click", startLesson);
-    $("#homeFromLesson").addEventListener("click", renderHome);
+    $("#homeFromLesson").addEventListener("click", goHome);
+    var newBtn = $("#newTopicBtn");
+    if (newBtn) newBtn.addEventListener("click", function () { loadTopic(true); });
+    var gear = $("#settingsBtn");
+    if (gear) gear.addEventListener("click", openSettings);
+    var closeBtn = $("#settingsClose");
+    if (closeBtn) closeBtn.addEventListener("click", closeSettings);
+    var backdrop = $("#settingsBackdrop");
+    if (backdrop) backdrop.addEventListener("click", closeSettings);
+    var saveBtn = $("#settingsSave");
+    if (saveBtn) saveBtn.addEventListener("click", saveSettingsKey);
+    var clearBtn = $("#settingsClear");
+    if (clearBtn) clearBtn.addEventListener("click", clearSettingsKey);
   }
+
   function registerSW() {
     if (!("serviceWorker" in navigator)) return;
     if (location.protocol !== "http:" && location.protocol !== "https:") return;
     navigator.serviceWorker.register("./sw.js").catch(function () {});
   }
+
   function init() {
     if (!(window.DAILY_LEARN_TOPICS && window.DAILY_LEARN_TOPICS.length)) {
       setTimeout(init, 40);
       return;
     }
     bind();
-    renderHome();
+    maskKeyStatus();
     registerSW();
     window.DailyLearn = {
       sydneyDateISO: sydneyDateISO,
-      topicForDate: topicForDate,
-      hashDate: hashDate,
-      state: runtime
+      state: runtime,
+      loadTopic: loadTopic,
+      getApiKey: function () { return !!getApiKey(); }
     };
+    loadTopic(false);
   }
+
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();
