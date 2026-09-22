@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Liam Words">
+  <rect width="512" height="512" rx="96" fill="#5B8DEF"/>
+  <circle cx="256" cy="220" r="100" fill="#FFD6A5"/>
+  <ellipse cx="256" cy="400" rx="140" ry="90" fill="#FF8FAB"/>
+  <circle cx="220" cy="210" r="14" fill="#1A2B3C"/>
+  <circle cx="292" cy="210" r="14" fill="#1A2B3C"/>
+  <path d="M210 260 Q256 300 302 260" stroke="#E07A5F" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M380 160 Q430 130 420 190" stroke="#FFD166" stroke-width="16" fill="none" stroke-linecap="round"/>
+  <path d="M400 210 Q450 200 440 250" stroke="#FFD166" stroke-width="12" fill="none" stroke-linecap="round" opacity=".8"/>
+</svg>

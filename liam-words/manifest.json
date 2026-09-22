@@ -1,0 +1,20 @@
+{
+  "name": "Liam Words",
+  "short_name": "Liam Words",
+  "description": "Toddler word practice: picture, say it, Auslan Signbank tip.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FFF6EB",
+  "theme_color": "#5B8DEF",
+  "lang": "en-AU",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
