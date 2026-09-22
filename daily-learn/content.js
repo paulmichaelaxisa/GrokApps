@@ -6,7 +6,7 @@
   }
   window.DAILY_LEARN_TOPICS = window.__DL_TOPICS || [];
   window.DAILY_LEARN_META = {
-    timezoneNote: "Daily topics use Australia/Sydney calendar dates (YYYY-MM-DD). Same date always maps to the same topic via a deterministic hash.",
-    version: "1.1.0"
+    timezoneNote: "Streaks use Australia/Sydney calendar dates. Topics are AI-generated when an xAI key is set; curated topics are offline fallback.",
+    version: "2.0.0-ai"
   };
 })();
