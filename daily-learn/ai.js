@@ -2,7 +2,7 @@
   "use strict";
 
   var API_URL = "https://api.x.ai/v1/chat/completions";
-  var MODEL = "grok-2-latest";
+  var MODEL = "grok-4.3";
 
   function stripFences(text) {
     if (!text || typeof text !== "string") return "";
