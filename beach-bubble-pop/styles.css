@@ -1,0 +1,52 @@
+/* Beach Bubble Pop — fullscreen canvas, no chrome */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #4FC3F7;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+}
+
+/* Parent-only / screen-reader title — visually tiny, off to the side */
+.sr-title {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  margin: 0;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: rgba(26, 43, 60, 0.28);
+  pointer-events: none;
+  z-index: 2;
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+
+#game {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: pointer;
+  z-index: 1;
+}
