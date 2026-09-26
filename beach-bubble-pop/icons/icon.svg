@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Beach Bubble Pop">
+  <rect width="512" height="512" rx="96" fill="#4FC3F7"/>
+  <!-- sand band -->
+  <rect y="360" width="512" height="152" fill="#F5E6C8"/>
+  <ellipse cx="256" cy="370" rx="280" ry="40" fill="#FFE8B0"/>
+  <!-- water hint -->
+  <rect y="300" width="512" height="70" fill="#29B6F6"/>
+  <!-- big soap bubble -->
+  <circle cx="256" cy="200" r="110" fill="#FF6B9D" opacity="0.85"/>
+  <circle cx="256" cy="200" r="110" fill="none" stroke="#FFFFFF" stroke-width="8" opacity="0.55"/>
+  <circle cx="210" cy="155" r="28" fill="#FFFFFF" opacity="0.7"/>
+  <circle cx="230" cy="175" r="12" fill="#FFFFFF" opacity="0.45"/>
+  <!-- small bubbles -->
+  <circle cx="380" cy="140" r="36" fill="#FFD166" opacity="0.9"/>
+  <circle cx="365" cy="125" r="10" fill="#FFFFFF" opacity="0.65"/>
+  <circle cx="120" cy="250" r="28" fill="#7ED9B8" opacity="0.9"/>
+  <circle cx="108" cy="238" r="8" fill="#FFFFFF" opacity="0.65"/>
+</svg>
