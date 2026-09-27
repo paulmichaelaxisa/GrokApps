@@ -3,15 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="Project Rehearsal — flight simulator for delivery PMs. Fail in here, not in steering." />
+  <meta name="description" content="Project Rehearsal — flight simulator for delivery PMs." />
   <meta name="theme-color" content="#0b0d10" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Rehearsal" />
-  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="icons/icon.svg" />
   <title>Project Rehearsal</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -25,30 +23,22 @@
       </div>
       <button type="button" class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings">⚙️</button>
     </header>
-
     <div class="banner" id="keyBanner" hidden role="status"></div>
-
     <div class="tabs" role="tablist" aria-label="How to start">
       <button type="button" class="tab" role="tab" id="tabTap" aria-selected="true">One-tap</button>
       <button type="button" class="tab" role="tab" id="tabPaste" aria-selected="false">Paste artefacts</button>
     </div>
-
     <p class="small bad" id="homeError" hidden style="padding:0 1rem 0.5rem" role="alert"></p>
-
-    <div id="panelTap">
-      <div class="scenario-list" id="scenarioList"></div>
-    </div>
-
+    <div id="panelTap"><div class="scenario-list" id="scenarioList"></div></div>
     <div id="panelPaste" hidden>
       <div class="paste-wrap">
-        <label class="sr-only" for="pack">Agenda, RAID, Slack, Jira, the last email</label>
+        <label class="sr-only" for="pack">Artefacts</label>
         <textarea id="pack" rows="12" placeholder="Paste agenda, RAID, Slack, Jira, last email…"></textarea>
-        <p class="xs" style="margin:0.5rem 0 0.75rem">Paste the pack. We infer the meeting, the cast, and what they will attack. (File upload skipped in this web build — paste text.)</p>
+        <p class="xs" style="margin:0.5rem 0 0.75rem">Paste the pack. (File upload skipped — paste text.)</p>
         <button type="button" class="btn btn-primary" id="startPaste">Rehearse from this pack</button>
       </div>
     </div>
   </div>
-
   <div id="screen-sim" class="screen sim" hidden>
     <header class="sim-head">
       <button type="button" class="exit" id="exitBtn">Exit</button>
@@ -62,7 +52,7 @@
     <form class="composer safe-bottom" id="sayForm">
       <p class="small bad" id="simError" hidden role="alert"></p>
       <div id="hintsBox" class="hints-box" hidden></div>
-      <label class="sr-only" for="draft">Your line in the room</label>
+      <label class="sr-only" for="draft">Your line</label>
       <textarea id="draft" rows="2" placeholder="Your line in the room…"></textarea>
       <div class="composer-row">
         <button type="submit" class="btn btn-primary" id="sayBtn" disabled>Say it</button>
@@ -70,7 +60,6 @@
       </div>
     </form>
   </div>
-
   <div id="screen-debrief" class="screen app-col debrief" hidden>
     <p class="kicker">After the room</p>
     <h1 class="title">Debrief</h1>
@@ -78,7 +67,6 @@
     <div id="debriefBody"></div>
     <button type="button" class="btn btn-primary" id="anotherBtn" style="width:100%;margin-top:1.5rem">Rehearse another</button>
   </div>
-
   <div id="settingsPanel" class="settings-panel" hidden aria-hidden="true">
     <div class="settings-backdrop" id="settingsBackdrop"></div>
     <div class="settings-sheet" role="dialog" aria-labelledby="settingsTitle">
@@ -95,25 +83,35 @@
       </div>
       <p class="settings-note">
         Get a key at <a href="https://console.x.ai" target="_blank" rel="noopener" style="color:var(--accent)">console.x.ai</a>.
-        Stored only in this device’s localStorage as <code>project-rehearsal-xai-key</code> — never sent anywhere except api.x.ai.
-        Same pattern as Daily Learn. Calls go straight from your browser (CORS open).
+        Stored in localStorage as <code>project-rehearsal-xai-key</code>. Browser calls api.x.ai (CORS open).
       </p>
     </div>
   </div>
-
-  <script src="ai.p0.js"></script>
-  <script src="ai.p1.js"></script>
-  <script src="ai.p2.js"></script>
-  <script src="ai.p3.js"></script>
-  <script src="ai.p4.js"></script>
-  <script src="ai.run.js"></script>
-  <script src="app.p0.js"></script>
-  <script src="app.p1.js"></script>
-  <script src="app.p2.js"></script>
-  <script src="app.p3.js"></script>
-  <script src="app.p4.js"></script>
-  <script src="app.p5.js"></script>
-  <script src="app.p6.js"></script>
-  <script src="app.run.js"></script>
+  <script src="b0.js"></script>
+  <script src="b1.js"></script>
+  <script src="b2.js"></script>
+  <script src="b3.js"></script>
+  <script src="b4.js"></script>
+  <script src="b5.js"></script>
+  <script src="b6.js"></script>
+  <script src="b7.js"></script>
+  <script src="b8.js"></script>
+  <script src="b9.js"></script>
+  <script src="b10.js"></script>
+  <script src="b11.js"></script>
+  <script src="b12.js"></script>
+  <script src="b13.js"></script>
+  <script src="b14.js"></script>
+  <script src="b15.js"></script>
+  <script src="b16.js"></script>
+  <script src="b17.js"></script>
+  <script src="b18.js"></script>
+  <script src="b19.js"></script>
+  <script src="b20.js"></script>
+  <script src="b21.js"></script>
+  <script src="b22.js"></script>
+  <script src="b23.js"></script>
+  <script src="b24.js"></script>
+  <script src="boot.js"></script>
 </body>
 </html>
