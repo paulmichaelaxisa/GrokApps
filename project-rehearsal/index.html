@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Project Rehearsal — flight simulator for delivery PMs. Fail in here, not in steering." />
+  <meta name="theme-color" content="#0b0d10" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Rehearsal" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <title>Project Rehearsal</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="screen-home" class="screen app-col">
+    <header class="topbar">
+      <div>
+        <p class="kicker">Project Rehearsal</p>
+        <h1 class="title">Fail in here.<br />Not in steering.</h1>
+        <p class="muted" style="margin-top:0.75rem">Skip the wizard. Tap a room, or paste the pack.</p>
+      </div>
+      <button type="button" class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings">⚙️</button>
+    </header>
+
+    <div class="banner" id="keyBanner" hidden role="status"></div>
+
+    <div class="tabs" role="tablist" aria-label="How to start">
+      <button type="button" class="tab" role="tab" id="tabTap" aria-selected="true">One-tap</button>
+      <button type="button" class="tab" role="tab" id="tabPaste" aria-selected="false">Paste artefacts</button>
+    </div>
+
+    <p class="small bad" id="homeError" hidden style="padding:0 1rem 0.5rem" role="alert"></p>
+
+    <div id="panelTap">
+      <div class="scenario-list" id="scenarioList"></div>
+    </div>
+
+    <div id="panelPaste" hidden>
+      <div class="paste-wrap">
+        <label class="sr-only" for="pack">Agenda, RAID, Slack, Jira, the last email</label>
+        <textarea id="pack" rows="12" placeholder="Paste agenda, RAID, Slack, Jira, last email…"></textarea>
+        <p class="xs" style="margin:0.5rem 0 0.75rem">Paste the pack. We infer the meeting, the cast, and what they will attack. (File upload skipped in this web build — paste text.)</p>
+        <button type="button" class="btn btn-primary" id="startPaste">Rehearse from this pack</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-sim" class="screen sim" hidden>
+    <header class="sim-head">
+      <button type="button" class="exit" id="exitBtn">Exit</button>
+      <div class="info">
+        <p class="kicker" id="simMeeting"></p>
+        <h1 style="font-size:1rem;line-height:1.2;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="simTitle"></h1>
+      </div>
+      <p class="clock ok" id="simClock">00:00</p>
+    </header>
+    <div class="thread" id="thread"></div>
+    <form class="composer safe-bottom" id="sayForm">
+      <p class="small bad" id="simError" hidden role="alert"></p>
+      <div id="hintsBox" class="hints-box" hidden></div>
+      <label class="sr-only" for="draft">Your line in the room</label>
+      <textarea id="draft" rows="2" placeholder="Your line in the room…"></textarea>
+      <div class="composer-row">
+        <button type="submit" class="btn btn-primary" id="sayBtn" disabled>Say it</button>
+        <button type="button" class="btn btn-ghost" id="debriefBtn" disabled>Debrief</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="screen-debrief" class="screen app-col debrief" hidden>
+    <p class="kicker">After the room</p>
+    <h1 class="title">Debrief</h1>
+    <p class="small" id="debriefScenario" style="margin-top:0.5rem"></p>
+    <div id="debriefBody"></div>
+    <button type="button" class="btn btn-primary" id="anotherBtn" style="width:100%;margin-top:1.5rem">Rehearse another</button>
+  </div>
+
+  <div id="settingsPanel" class="settings-panel" hidden aria-hidden="true">
+    <div class="settings-backdrop" id="settingsBackdrop"></div>
+    <div class="settings-sheet" role="dialog" aria-labelledby="settingsTitle">
+      <div class="settings-head">
+        <h2 id="settingsTitle">Settings</h2>
+        <button type="button" class="icon-btn" id="settingsClose" aria-label="Close">✕</button>
+      </div>
+      <label class="field-label" for="apiKeyInput">xAI API key</label>
+      <input type="password" id="apiKeyInput" autocomplete="off" spellcheck="false" placeholder="xai-… paste your key" />
+      <p class="key-status unset" id="keyStatus">Key not set</p>
+      <div class="settings-actions">
+        <button type="button" class="btn btn-secondary" id="settingsClear">Clear</button>
+        <button type="button" class="btn btn-primary" id="settingsSave">Save key</button>
+      </div>
+      <p class="settings-note">
+        Get a key at <a href="https://console.x.ai" target="_blank" rel="noopener" style="color:var(--accent)">console.x.ai</a>.
+        Stored only in this device’s localStorage as <code>project-rehearsal-xai-key</code> — never sent anywhere except api.x.ai.
+        Same pattern as Daily Learn. Calls go straight from your browser (CORS open).
+      </p>
+    </div>
+  </div>
+
+  <script src="ai.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
