@@ -1,9 +1,8 @@
 (function(){
-  var n = 5;
+  var n = 9;
   var parts = [];
   function go(){
-    var b64 = parts.join("");
-    var bin = atob(b64);
+    var bin = atob(parts.join(""));
     var s = document.createElement("script");
     s.text = bin;
     document.head.appendChild(s);
@@ -13,8 +12,7 @@
     (function(i){
       fetch("bundle." + i + ".b64").then(function(r){ return r.text(); }).then(function(t){
         parts[i] = t.replace(/\s+/g,"");
-        left--;
-        if (left === 0) go();
+        if (--left === 0) go();
       }).catch(function(e){
         console.error(e);
         var el = document.getElementById("keyBanner");

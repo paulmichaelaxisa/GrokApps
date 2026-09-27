@@ -1,4 +1,4 @@
-const CACHE = "project-rehearsal-v4";
+const CACHE = "project-rehearsal-v5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,7 +10,11 @@ const ASSETS = [
   "./bundle.1.b64",
   "./bundle.2.b64",
   "./bundle.3.b64",
-  "./bundle.4.b64"
+  "./bundle.4.b64",
+  "./bundle.5.b64",
+  "./bundle.6.b64",
+  "./bundle.7.b64",
+  "./bundle.8.b64"
 ];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
