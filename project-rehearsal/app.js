@@ -7,4 +7,5 @@
   document.write('<script src="app.p5.js"><\/script>');
   document.write('<script src="app.p6.js"><\/script>');
   document.write('<script src="app.p7.js"><\/script>');
+  document.write('<script src="app.p8.js"><\/script>');
 })();
