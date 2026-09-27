@@ -1,5 +1,5 @@
-const CACHE="project-rehearsal-v8";
-const ASSETS=["./", "./index.html", "./styles.css", "./manifest.json", "./icons/icon.svg", "./boot.js", "./b0.js", "./b1.js", "./b2.js", "./b3.js", "./b4.js", "./b5.js", "./b6.js", "./b7.js", "./b8.js", "./b9.js", "./b10.js", "./b11.js", "./b12.js", "./b13.js", "./b14.js", "./b15.js", "./b16.js", "./b17.js", "./b18.js", "./b19.js", "./b20.js", "./b21.js", "./b22.js", "./b23.js", "./b24.js"];
+const CACHE="project-rehearsal-v9";
+const ASSETS=["./","./index.html","./styles.css","./manifest.json","./icons/icon.svg","./ai.js","./ai.p0.js","./ai.p1.js","./ai.p2.js","./ai.p3.js","./ai.p4.js","./ai.p5.js","./app.js","./app.p0.js","./app.p1.js","./app.p2.js","./app.p3.js","./app.p4.js","./app.p5.js","./app.p6.js","./app.p7.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener("fetch",e=>{const req=e.request;if(req.method!=="GET")return;const url=new URL(req.url);if(url.origin!==self.location.origin)return;e.respondWith(caches.match(req).then(cached=>cached||fetch(req).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy));return res;}).catch(()=>cached)));});
