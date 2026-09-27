@@ -1,12 +1,24 @@
-const CACHE = "project-rehearsal-v1";
+const CACHE = "project-rehearsal-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
-  "./app.js",
-  "./ai.js",
   "./manifest.json",
-  "./icons/icon.svg"
+  "./icons/icon.svg",
+  "./ai.run.js",
+  "./app.run.js",
+  "./ai.p0.js",
+  "./ai.p1.js",
+  "./ai.p2.js",
+  "./ai.p3.js",
+  "./ai.p4.js",
+  "./app.p0.js",
+  "./app.p1.js",
+  "./app.p2.js",
+  "./app.p3.js",
+  "./app.p4.js",
+  "./app.p5.js",
+  "./app.p6.js"
 ];
 
 self.addEventListener("install", (event) => {
