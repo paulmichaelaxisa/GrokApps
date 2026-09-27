@@ -1,4 +1,4 @@
-const CACHE = "project-rehearsal-v3";
+const CACHE = "project-rehearsal-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,31 +6,11 @@ const ASSETS = [
   "./manifest.json",
   "./icons/icon.svg",
   "./boot.js",
-  "./b0.js",
-  "./b1.js",
-  "./b2.js",
-  "./b3.js",
-  "./b4.js",
-  "./b5.js",
-  "./b6.js",
-  "./b7.js",
-  "./b8.js",
-  "./b9.js",
-  "./b10.js",
-  "./b11.js",
-  "./b12.js",
-  "./b13.js",
-  "./b14.js",
-  "./b15.js",
-  "./b16.js",
-  "./b17.js",
-  "./b18.js",
-  "./b19.js",
-  "./b20.js",
-  "./b21.js",
-  "./b22.js",
-  "./b23.js",
-  "./b24.js"
+  "./bundle.0.b64",
+  "./bundle.1.b64",
+  "./bundle.2.b64",
+  "./bundle.3.b64",
+  "./bundle.4.b64"
 ];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
