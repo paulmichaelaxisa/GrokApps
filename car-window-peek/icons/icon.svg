@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Car Window Peek">
+  <rect width="512" height="512" rx="96" fill="#4FC3F7"/>
+  <!-- sky -->
+  <rect y="40" width="512" height="280" fill="#87CEEB"/>
+  <!-- sun -->
+  <circle cx="400" cy="110" r="44" fill="#FFE066"/>
+  <circle cx="400" cy="110" r="32" fill="#FFD166"/>
+  <!-- distant ocean -->
+  <rect y="250" width="512" height="50" fill="#29B6F6"/>
+  <!-- green trees hint -->
+  <ellipse cx="90" cy="280" rx="50" ry="55" fill="#2E8B57"/>
+  <ellipse cx="160" cy="270" rx="42" ry="48" fill="#3CB371"/>
+  <rect x="78" y="300" width="24" height="40" fill="#5D4037"/>
+  <rect x="148" y="295" width="20" height="40" fill="#5D4037"/>
+  <!-- road -->
+  <rect y="340" width="512" height="130" fill="#37474F"/>
+  <rect y="398" width="512" height="14" fill="#FFD166"/>
+  <!-- dashed line -->
+  <rect x="40" y="398" width="60" height="14" fill="#FFF8E1"/>
+  <rect x="140" y="398" width="60" height="14" fill="#FFF8E1"/>
+  <rect x="240" y="398" width="60" height="14" fill="#FFF8E1"/>
+  <rect x="340" y="398" width="60" height="14" fill="#FFF8E1"/>
+  <rect x="440" y="398" width="50" height="14" fill="#FFF8E1"/>
+  <!-- window frame hint (rounded inset) -->
+  <rect x="28" y="28" width="456" height="456" rx="72" fill="none" stroke="#263238" stroke-width="36" opacity="0.55"/>
+  <rect x="28" y="28" width="456" height="456" rx="72" fill="none" stroke="#455A64" stroke-width="18" opacity="0.4"/>
+</svg>

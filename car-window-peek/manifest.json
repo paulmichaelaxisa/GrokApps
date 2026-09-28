@@ -1,0 +1,20 @@
+{
+  "name": "Car Window Peek",
+  "short_name": "Car Peek",
+  "description": "Toddler coastal car-window drive — huge taps, visual + vibration feedback, offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#4FC3F7",
+  "theme_color": "#4FC3F7",
+  "lang": "en-AU",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
