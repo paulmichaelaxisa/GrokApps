@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Animal Parade">
+  <rect width="512" height="512" rx="96" fill="#4FC3F7"/>
+  <!-- sand -->
+  <rect y="360" width="512" height="152" fill="#F5E6C8"/>
+  <ellipse cx="256" cy="370" rx="280" ry="40" fill="#FFE8B0"/>
+  <!-- water -->
+  <rect y="300" width="512" height="70" fill="#29B6F6"/>
+  <!-- sun -->
+  <circle cx="400" cy="110" r="48" fill="#FFE066"/>
+  <circle cx="400" cy="110" r="36" fill="#FFD166"/>
+  <!-- cute turtle silhouette -->
+  <ellipse cx="250" cy="250" rx="110" ry="78" fill="#2E8B57"/>
+  <ellipse cx="250" cy="250" rx="88" ry="60" fill="#3CB371"/>
+  <!-- shell pattern -->
+  <path d="M190 230 Q250 200 310 230 Q250 260 190 230" fill="#228B22" opacity="0.55"/>
+  <path d="M210 270 Q250 245 290 270 Q250 290 210 270" fill="#228B22" opacity="0.4"/>
+  <!-- head -->
+  <circle cx="250" cy="175" r="42" fill="#66BB6A"/>
+  <!-- eyes -->
+  <circle cx="232" cy="168" r="12" fill="#fff"/>
+  <circle cx="268" cy="168" r="12" fill="#fff"/>
+  <circle cx="235" cy="170" r="7" fill="#1A2B3C"/>
+  <circle cx="271" cy="170" r="7" fill="#1A2B3C"/>
+  <circle cx="237" cy="167" r="2.5" fill="#fff"/>
+  <circle cx="273" cy="167" r="2.5" fill="#fff"/>
+  <!-- smile -->
+  <path d="M235 188 Q250 202 265 188" fill="none" stroke="#1A2B3C" stroke-width="4" stroke-linecap="round"/>
+  <!-- feet -->
+  <ellipse cx="175" cy="290" rx="28" ry="18" fill="#66BB6A"/>
+  <ellipse cx="325" cy="290" rx="28" ry="18" fill="#66BB6A"/>
+  <ellipse cx="200" cy="310" rx="24" ry="16" fill="#66BB6A"/>
+  <ellipse cx="300" cy="310" rx="24" ry="16" fill="#66BB6A"/>
+</svg>

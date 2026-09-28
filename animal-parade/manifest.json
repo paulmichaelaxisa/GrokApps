@@ -1,0 +1,20 @@
+{
+  "name": "Animal Parade",
+  "short_name": "Animal Parade",
+  "description": "Toddler coastal animal tap delight — huge targets, visual + vibration feedback, offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F5E6C8",
+  "theme_color": "#4FC3F7",
+  "lang": "en-AU",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
