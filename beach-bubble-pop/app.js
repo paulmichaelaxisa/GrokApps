@@ -1,3 +1,17 @@
+/* Self-heal: if an old cached engine loaded, wipe caches and reload once */
+(function () {
+  var B = window.BBP;
+  if (B && typeof B.createSpawner === "function" && typeof B.stepBubbles === "function") return;
+  try {
+    if (sessionStorage.getItem("bbp-healed")) return;
+    sessionStorage.setItem("bbp-healed", "1");
+  } catch (_) {}
+  var jobs = [];
+  if (window.caches) jobs.push(caches.keys().then(function (k) { return Promise.all(k.map(function (n) { return caches.delete(n); })); }));
+  if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (r) { return Promise.all(r.map(function (x) { return x.unregister(); })); }));
+  Promise.all(jobs).catch(function () {}).then(function () { location.replace(location.pathname + "?v=" + Date.now()); });
+  throw new Error("Beach Bubble Pop: stale engine, healing");
+})();
 /* Beach Bubble Pop — game loop for Liam (v2: edge spawns, anti-cluster) */
 (() => {
   "use strict";
