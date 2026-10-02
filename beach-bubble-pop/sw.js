@@ -1,5 +1,5 @@
 /* Beach Bubble Pop — cache-first offline shell */
-const CACHE = "beach-bubble-pop-v1";
+const CACHE = "beach-bubble-pop-v2";
 const ASSETS = [
   "./",
   "./index.html",

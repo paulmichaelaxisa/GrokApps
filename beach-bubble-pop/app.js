@@ -1,7 +1,10 @@
-/* Beach Bubble Pop — game loop for Liam */
+/* Beach Bubble Pop — game loop for Liam (v2: edge spawns, anti-cluster) */
 (() => {
   "use strict";
-  const { spawnBubble, spawnParticles, drawBackground, drawBubble, drawParticles } = window.BBP;
+  const {
+    CFG, seedBubbles, stepBubbles, createSpawner,
+    spawnParticles, drawBackground, drawBubble, drawParticles,
+  } = window.BBP;
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: false });
@@ -14,10 +17,8 @@
   let lastPointer = null;
   let audioCtx = null;
   let audioReady = false;
-  let lastSpawnCheck = 0;
+  let spawner = createSpawner(null);
 
-  const MIN_BUBBLES = 8;
-  const MAX_BUBBLES = 18;
   const HIT_PAD = 14;
 
   function resize() {
@@ -33,14 +34,10 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function ensureBubbles() {
-    while (bubbles.length < MIN_BUBBLES) bubbles.push(spawnBubble(W, H, true));
-  }
-
+  // First few start on screen, spread apart (same gap rule); the rest drift in from the edges.
   function seedInitial() {
-    bubbles = [];
-    const n = Math.floor(8 + Math.random() * 11);
-    for (let i = 0; i < n; i++) bubbles.push(spawnBubble(W, H, false));
+    bubbles = seedBubbles(W, H, CFG.MIN_ON_SCREEN);
+    spawner = createSpawner(null);
   }
 
   function unlockAudio() {
@@ -161,15 +158,8 @@
   }
 
   function update(dt) {
-    for (const b of bubbles) {
-      if (!b.alive) continue;
-      b.age += dt;
-      b.y += b.vy * (dt / 16.67) * 1.1;
-      b.x += Math.sin(b.age * b.wobbleFreq + b.wobblePhase) * b.wobbleAmp * (dt / 16.67);
-      if (b.x < -b.r) b.x = W + b.r;
-      if (b.x > W + b.r) b.x = -b.r;
-    }
-    bubbles = bubbles.filter((b) => b.alive && b.y + b.r >= -20);
+    // drift + wobble + soft repulsion; despawns only after a bubble has entered and fully left
+    bubbles = stepBubbles(bubbles.filter((b) => b.alive), W, H, dt);
 
     for (const p of particles) {
       p.x += p.vx * (dt / 16.67);
@@ -184,16 +174,9 @@
       if (flash.life <= 0) flash = null;
     }
 
-    ensureBubbles();
-    if (bubbles.length < MAX_BUBBLES && Math.random() < 0.04) {
-      bubbles.push(spawnBubble(W, H, true));
-    }
-
-    lastSpawnCheck += dt;
-    if (lastSpawnCheck > 800) {
-      lastSpawnCheck = 0;
-      if (bubbles.length === 0) seedInitial();
-    }
+    // gentle edge spawns: any edge, anti-cluster checked, capped at CFG.MAX_ON_SCREEN
+    const nb = spawner.tick(bubbles, W, H, dt);
+    if (nb) bubbles.push(nb);
   }
 
   let lastTs = 0;
