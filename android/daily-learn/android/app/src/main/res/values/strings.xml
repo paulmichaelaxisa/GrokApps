@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Daily Learn</string>
+    <string name="title_activity_main">Daily Learn</string>
+    <string name="package_name">com.paulaxisa.dailylearn</string>
+    <string name="custom_url_scheme">com.paulaxisa.dailylearn</string>
+</resources>

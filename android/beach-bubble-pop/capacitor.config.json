@@ -1,0 +1,6 @@
+{
+  "appId": "com.paulaxisa.beachbubblepop",
+  "appName": "Beach Bubble Pop",
+  "webDir": "www",
+  "android": { "backgroundColor": "#F5E6C8" }
+}

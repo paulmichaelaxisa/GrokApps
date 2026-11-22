@@ -1,0 +1,6 @@
+{
+  "appId": "com.paulaxisa.liamwords",
+  "appName": "Liam Words",
+  "webDir": "www",
+  "android": { "backgroundColor": "#FFF6EB" }
+}

@@ -1,0 +1,17 @@
+# Dependencies and copied web assets (regenerate with scripts/sync-www.sh)
+node_modules/
+www/
+dist/
+
+# Signing — never commit these
+keystore/
+keystore.properties
+*.jks
+*.keystore
+
+# Generated secret config (Daily Learn write-config.js)
+config.local.js
+android/app/src/main/assets/public/config.local.js
+
+# Local SDK path
+android/local.properties

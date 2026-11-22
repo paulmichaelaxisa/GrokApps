@@ -1,0 +1,6 @@
+{
+  "appId": "com.paulaxisa.dailylearn",
+  "appName": "Daily Learn",
+  "webDir": "www",
+  "android": { "backgroundColor": "#6366f1" }
+}

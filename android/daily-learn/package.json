@@ -1,0 +1,8 @@
+{
+  "name": "daily-learn",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": { "config": "node scripts/write-config.js" },
+  "dependencies": { "@capacitor/android": "^7.6.10", "@capacitor/core": "^7.6.10" },
+  "devDependencies": { "@capacitor/cli": "^7.6.10" }
+}
