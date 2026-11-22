@@ -32,6 +32,37 @@
     stepChip.hidden = home;
   }
 
+  function artId(id) {
+    return String(id || "").replace(/[^a-z0-9_-]/gi, "");
+  }
+
+  function createWordArt(id, size) {
+    const safe = artId(id);
+    const picture = document.createElement("picture");
+    const source = document.createElement("source");
+    source.srcset = "art/" + safe + ".webp";
+    source.type = "image/webp";
+    source.media = "(prefers-reduced-motion: no-preference)";
+    const img = document.createElement("img");
+    img.className = "word-art-img";
+    img.src = "art/" + safe + ".png";
+    img.alt = "";
+    img.width = size;
+    img.height = size;
+    img.decoding = "async";
+    img.draggable = false;
+    img.addEventListener("error", function onErr() {
+      img.removeEventListener("error", onErr);
+      const svg = ART && ART[id];
+      if (svg && picture.parentNode) {
+        picture.outerHTML = svg;
+      }
+    });
+    picture.appendChild(source);
+    picture.appendChild(img);
+    return picture;
+  }
+
   function buildGrid() {
     wordGrid.innerHTML = "";
     WORDS.forEach((w) => {
@@ -40,9 +71,15 @@
       btn.className = "word-tile";
       btn.setAttribute("role", "listitem");
       btn.setAttribute("aria-label", w.label);
-      btn.innerHTML =
-        `<span class="tile-art">${ART[w.id] || ""}</span>` +
-        `<span class="tile-label">${escapeHtml(w.label)}</span>`;
+      const art = document.createElement("span");
+      art.className = "tile-art";
+      art.setAttribute("aria-hidden", "true");
+      art.appendChild(createWordArt(w.id, 256));
+      const label = document.createElement("span");
+      label.className = "tile-label";
+      label.textContent = w.label;
+      btn.appendChild(art);
+      btn.appendChild(label);
       btn.addEventListener("click", () => openWord(w));
       wordGrid.appendChild(btn);
     });
@@ -90,7 +127,8 @@
     stepChip.textContent = `${step + 1} / 3`;
 
     // Picture
-    $("pictureArt").innerHTML = ART[w.id] || "";
+    const pictureArt = $("pictureArt");
+    pictureArt.replaceChildren(createWordArt(w.id, 512));
     $("pictureWord").textContent = w.label;
 
     // Say
