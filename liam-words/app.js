@@ -96,6 +96,7 @@
   }
 
   function openWord(w) {
+    stopSpeech();
     currentWord = w;
     step = 0;
     renderStep();
@@ -103,7 +104,7 @@
   }
 
   function goHome() {
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    stopSpeech();
     currentWord = null;
     showScreen(true);
   }
@@ -163,37 +164,95 @@
     nextBtn.textContent = step === 2 ? "Done" : "Next";
   }
 
-  function speakWord() {
-    if (!currentWord || !window.speechSynthesis) {
-      speakBtn.textContent = "Speech not available";
-      return;
+  let currentAudio = null;
+  let speakReset = null;
+
+  function stopSpeech() {
+    if (speakReset) {
+      const fn = speakReset;
+      speakReset = null;
+      fn();
     }
+    if (currentAudio) {
+      try {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      } catch (_) {}
+      currentAudio = null;
+    }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+
+  function speakWithSynthesis() {
+    if (!currentWord || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(currentWord.speak);
     u.rate = 0.65;
     u.pitch = 1.05;
     u.lang = "en-AU";
-    speakBtn.classList.add("speaking");
-    const label = speakBtn.innerHTML;
-    speakBtn.innerHTML =
-      '<span class="speak-icon" aria-hidden="true">🔊</span> Speaking…';
     u.onend = u.onerror = () => {
+      if (speakReset) {
+        const fn = speakReset;
+        speakReset = null;
+        fn();
+      }
+    };
+    window.speechSynthesis.speak(u);
+  }
+
+  function speakWord() {
+    if (!currentWord) return;
+    stopSpeech();
+    const label = speakBtn.innerHTML;
+    const resetUi = () => {
       speakBtn.classList.remove("speaking");
       speakBtn.innerHTML = label;
     };
-    window.speechSynthesis.speak(u);
+    speakBtn.classList.add("speaking");
+    speakBtn.innerHTML =
+      '<span class="speak-icon" aria-hidden="true">🔊</span> Speaking…';
+    speakReset = resetUi;
+
+    const src = "audio/" + artId(currentWord.id) + ".mp3";
+    const audio = new Audio(src);
+    audio.preload = "auto";
+    audio.muted = false;
+    audio.volume = 1;
+    currentAudio = audio;
+
+    let usedFallback = false;
+    const fallback = () => {
+      if (usedFallback) return;
+      usedFallback = true;
+      if (currentAudio === audio) currentAudio = null;
+      speakWithSynthesis();
+    };
+    audio.addEventListener("ended", () => {
+      if (currentAudio === audio) currentAudio = null;
+      if (speakReset === resetUi) {
+        speakReset = null;
+        resetUi();
+      }
+    });
+    audio.addEventListener("error", fallback);
+    const played = audio.play();
+    if (played && typeof played.catch === "function") {
+      played.catch(fallback);
+    }
   }
 
   // Events
   backBtn.addEventListener("click", goHome);
   prevBtn.addEventListener("click", () => {
     if (step > 0) {
+      stopSpeech();
       step -= 1;
       renderStep();
     }
   });
   nextBtn.addEventListener("click", () => {
     if (step < 2) {
+      stopSpeech();
       step += 1;
       renderStep();
     } else {
@@ -219,9 +278,11 @@
       touchX = null;
       if (Math.abs(dx) < 50) return;
       if (dx < 0 && step < 2) {
+        stopSpeech();
         step += 1;
         renderStep();
       } else if (dx > 0 && step > 0) {
+        stopSpeech();
         step -= 1;
         renderStep();
       }

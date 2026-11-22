@@ -1,5 +1,5 @@
 /* Liam Words — basic offline shell */
-const CACHE = "liam-words-v3";
+const CACHE = "liam-words-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -33,6 +33,18 @@ const ASSETS = [
   "./art/car.png",
   "./art/sleep.webp",
   "./art/sleep.png",
+  "./audio/mummy.mp3",
+  "./audio/daddy.mp3",
+  "./audio/milk.mp3",
+  "./audio/more.mp3",
+  "./audio/ball.mp3",
+  "./audio/dog.mp3",
+  "./audio/water.mp3",
+  "./audio/bye.mp3",
+  "./audio/eat.mp3",
+  "./audio/book.mp3",
+  "./audio/car.mp3",
+  "./audio/sleep.mp3",
 ];
 
 self.addEventListener("install", (event) => {
