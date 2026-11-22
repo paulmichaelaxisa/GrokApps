@@ -5,6 +5,9 @@
   var API_KEY_STORAGE = "daily-learn-xai-key";
   var RECENT_TITLES_KEY = "daily-learn-recent-titles";
   var MAX_RECENT = 30;
+  var SESSION_KEY = "daily-learn-session-v1";
+  var HISTORY_KEY = "daily-learn-history-v1";
+  var MAX_HISTORY = 30;
   var TZ = "Australia/Sydney";
 
   function $(sel, root) { return (root || document).querySelector(sel); }
@@ -85,6 +88,83 @@
     try { localStorage.setItem(RECENT_TITLES_KEY, JSON.stringify(list)); } catch (e) {}
   }
 
+  // ---- Memory: current lesson session + topic history (localStorage) ----
+  function saveSession() {
+    if (!runtime.topic) return;
+    var sess = {
+      v: 1,
+      topic: runtime.topic,
+      source: runtime.source,
+      lastOfflineReason: runtime.lastOfflineReason || null,
+      mode: runtime.mode,
+      sectionIndex: runtime.sectionIndex,
+      score: runtime.score,
+      answers: runtime.answers || {},
+      startedOn: runtime.startedOn || runtime.dateIso,
+      updatedAt: new Date().toISOString()
+    };
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(sess)); } catch (e) {}
+  }
+  function loadSession() {
+    try {
+      var sess = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+      if (!sess || !sess.topic) return null;
+      var ai = window.DailyLearnAI;
+      if (ai && ai.validateTopic && ai.validateTopic(sess.topic)) return null;
+      var n = sess.topic.sections.length;
+      if (typeof sess.sectionIndex !== "number" || sess.sectionIndex < 0 || sess.sectionIndex >= n) sess.sectionIndex = 0;
+      if (typeof sess.score !== "number") sess.score = 0;
+      if (!sess.answers || typeof sess.answers !== "object") sess.answers = {};
+      if (["home", "lesson", "quiz", "done"].indexOf(sess.mode) < 0) sess.mode = "home";
+      return sess;
+    } catch (e) { return null; }
+  }
+  function getHistory() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function upsertHistory(patch) {
+    if (!runtime.topic) return;
+    var t = runtime.topic;
+    var list = getHistory();
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].title === t.title) { idx = i; break; }
+    }
+    var entry = idx >= 0 ? list.splice(idx, 1)[0] : {
+      id: t.id, title: t.title, emoji: t.emoji, source: runtime.source,
+      startedOn: runtime.startedOn || runtime.dateIso, completed: false
+    };
+    for (var k in patch) if (Object.prototype.hasOwnProperty.call(patch, k)) entry[k] = patch[k];
+    list.unshift(entry);
+    if (list.length > MAX_HISTORY) list = list.slice(0, MAX_HISTORY);
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function avoidTitlesForPrompt() {
+    var seen = {};
+    var out = [];
+    getHistory().map(function (h) { return h && h.title; }).concat(getRecentTitles()).forEach(function (t) {
+      if (!t || seen[t.toLowerCase()]) return;
+      seen[t.toLowerCase()] = true;
+      out.push(t);
+    });
+    return out.slice(0, MAX_RECENT);
+  }
+  function setNewTopic(topic, source) {
+    runtime.topic = topic;
+    runtime.source = source;
+    runtime.mode = "home";
+    runtime.sectionIndex = 0;
+    runtime.score = 0;
+    runtime.answers = {};
+    runtime.startedOn = runtime.dateIso;
+    rememberTitle(topic.title);
+    upsertHistory({});
+    saveSession();
+  }
+
   function previousSydneyDate(iso) {
     var p = iso.split("-").map(Number);
     var dt = new Date(Date.UTC(p[0], p[1] - 1, p[2], 12));
@@ -115,8 +195,11 @@
   function pickRandomCurated() {
     var topics = window.DAILY_LEARN_TOPICS || [];
     if (!topics.length) return null;
-    var idx = Math.floor(Math.random() * topics.length);
-    return topics[idx];
+    var avoid = {};
+    avoidTitlesForPrompt().forEach(function (t) { avoid[t.toLowerCase()] = true; });
+    var fresh = topics.filter(function (t) { return !avoid[(t.title || "").toLowerCase()]; });
+    var pool = fresh.length ? fresh : topics;
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   var runtime = {
@@ -128,6 +211,9 @@
     answered: false,
     selectedChoice: null,
     source: "offline",
+    answers: {},
+    startedOn: null,
+    resumed: false,
     loading: false,
     loadToken: 0
   };
@@ -170,9 +256,15 @@
       $("#topicEmoji").textContent = runtime.topic.emoji;
       $("#topicTitle").textContent = runtime.topic.title;
       $("#topicBlurb").textContent = runtime.topic.blurb;
-      $("#startBtn").textContent = doneToday ? "Review lesson" : "Start lesson";
+      var inProgress = runtime.mode !== "done" && (runtime.sectionIndex > 0 || Object.keys(runtime.answers || {}).length > 0 || runtime.mode === "lesson" || runtime.mode === "quiz");
+      var finishedThis = runtime.mode === "done";
+      $("#startBtn").textContent = inProgress
+        ? ("Continue lesson \u00b7 section " + (runtime.sectionIndex + 1) + " of " + runtime.topic.sections.length)
+        : (finishedThis ? "Review lesson" : "Start lesson");
       $("#startBtn").disabled = false;
-      var srcNote = runtime.source === "ai" ? "AI topic \u00b7 unique each open" : "Offline curated topic";
+      var srcNote = (runtime.source === "ai" ? "AI topic" : "Offline curated topic") +
+        (runtime.resumed ? " \u00b7 saved from last time" : "") +
+        " \u00b7 tap New topic for a fresh one";
       $("#homeStatus").textContent = doneToday
         ? ("Completed today \u00b7 score " + store.completedDates[runtime.dateIso].score + "/" + store.completedDates[runtime.dateIso].total + " \u00b7 " + srcNote)
         : (srcNote + " \u00b7 finish a lesson to keep your streak");
@@ -219,9 +311,8 @@
       showScreen("screen-home");
       return;
     }
-    runtime.topic = topic;
-    runtime.source = "offline";
-    rememberTitle(topic.title);
+    runtime.resumed = false;
+    setNewTopic(topic, "offline");
     renderHomeTopic();
   }
 
@@ -240,12 +331,11 @@
 
     window.DailyLearnAI.generateTopic({
       apiKey: key,
-      avoidTitles: getRecentTitles()
+      avoidTitles: avoidTitlesForPrompt()
     }).then(function (topic) {
       if (token !== runtime.loadToken) return;
-      runtime.topic = topic;
-      runtime.source = "ai";
-      rememberTitle(topic.title);
+      runtime.resumed = false;
+      setNewTopic(topic, "ai");
       renderHomeTopic();
     }).catch(function (err) {
       if (token !== runtime.loadToken) return;
@@ -356,6 +446,7 @@
     runtime.mode = "lesson";
     runtime.answered = false;
     runtime.selectedChoice = null;
+    saveSession();
     $("#lessonTopic").textContent = runtime.topic.emoji + " " + runtime.topic.title;
     $("#lessonStep").textContent = "Section " + n + " of " + total;
     $("#lessonTitle").textContent = sec.title;
@@ -371,6 +462,7 @@
     runtime.mode = "quiz";
     runtime.answered = false;
     runtime.selectedChoice = null;
+    saveSession();
     $("#quizTopic").textContent = runtime.topic.emoji + " " + runtime.topic.title;
     $("#quizStep").textContent = "Quiz " + (runtime.sectionIndex + 1) + " of " + runtime.topic.sections.length;
     $("#quizQuestion").textContent = quiz.q;
@@ -403,12 +495,17 @@
     $("#checkBtn").disabled = false;
   }
 
-  function checkAnswer() {
+  function checkAnswer(replay) {
     if (runtime.selectedChoice == null || runtime.answered) return;
     runtime.answered = true;
     var quiz = runtime.topic.sections[runtime.sectionIndex].quiz;
     var correct = runtime.selectedChoice === quiz.correct;
-    if (correct) runtime.score += 1;
+    if (replay !== true) {
+      runtime.answers = runtime.answers || {};
+      runtime.answers[runtime.sectionIndex] = { choice: runtime.selectedChoice, correct: correct };
+      runtime.score = Object.keys(runtime.answers).filter(function (k) { return runtime.answers[k] && runtime.answers[k].correct; }).length;
+      saveSession();
+    }
     $$("#choices .choice").forEach(function (el, idx) {
       el.disabled = true;
       if (idx === quiz.correct) el.classList.add("correct");
@@ -432,7 +529,16 @@
   function finishDay() {
     runtime.mode = "done";
     var total = runtime.topic.sections.length;
-    var store = recordCompletion(runtime.dateIso, runtime.score, total);
+    recordCompletion(runtime.dateIso, runtime.score, total);
+    upsertHistory({ completed: true, score: runtime.score, total: total, completedOn: runtime.dateIso });
+    saveSession();
+    renderDone(true);
+  }
+
+  function renderDone(celebrate) {
+    runtime.mode = "done";
+    var total = runtime.topic.sections.length;
+    var store = ensureState();
     var streak = currentStreakDisplay(store, runtime.dateIso);
     $("#doneEmoji").textContent = runtime.score === total ? "\uD83C\uDFC6" : "\u2728";
     $("#doneTitle").textContent = runtime.score === total ? "Perfect!" : "Lesson complete!";
@@ -441,7 +547,7 @@
     $("#doneTopic").textContent = "You learned: " + runtime.topic.title;
     renderProgress();
     showScreen("screen-done");
-    burstConfetti();
+    if (celebrate) burstConfetti();
   }
 
   function burstConfetti() {
@@ -464,11 +570,63 @@
     if (!runtime.topic || runtime.loading) return;
     runtime.sectionIndex = 0;
     runtime.score = 0;
+    runtime.answers = {};
     runtime.answered = false;
     renderLesson();
   }
 
+  // Home button: resume where you were if a lesson is in progress.
+  function startOrContinue() {
+    if (!runtime.topic || runtime.loading) return;
+    var inProgress = runtime.mode !== "done" && (runtime.sectionIndex > 0 || Object.keys(runtime.answers || {}).length > 0);
+    if (inProgress) resumePosition("lesson");
+    else startLesson();
+  }
+
+  function resumePosition(mode) {
+    if (mode === "quiz") {
+      renderQuiz();
+      var prev = runtime.answers && runtime.answers[runtime.sectionIndex];
+      if (prev && typeof prev.choice === "number") {
+        selectChoice(prev.choice);
+        checkAnswer(true);
+      }
+    } else if (mode === "done") {
+      renderDone(false);
+    } else {
+      var prevAns = runtime.answers && runtime.answers[runtime.sectionIndex];
+      if (prevAns) {
+        // Quiz for this section already answered: show it with its result.
+        resumePosition("quiz");
+        return;
+      }
+      renderLesson();
+    }
+  }
+
+  function restoreSession() {
+    var sess = loadSession();
+    if (!sess) return false;
+    runtime.topic = sess.topic;
+    runtime.source = sess.source === "ai" ? "ai" : "offline";
+    runtime.lastOfflineReason = sess.lastOfflineReason || null;
+    runtime.sectionIndex = sess.sectionIndex;
+    runtime.score = sess.score;
+    runtime.answers = sess.answers;
+    runtime.startedOn = sess.startedOn || runtime.dateIso;
+    runtime.resumed = true;
+    runtime.mode = sess.mode;
+    updateHomeChrome();
+    showOfflineBanner(false);
+    setLoading(false);
+    if (sess.mode === "lesson" || sess.mode === "quiz" || sess.mode === "done") resumePosition(sess.mode);
+    else { runtime.mode = "home"; showScreen("screen-home"); }
+    return true;
+  }
+
   function goHome() {
+    if (runtime.mode !== "done") runtime.mode = "home";
+    saveSession();
     updateHomeChrome();
     if (runtime.source === "offline") {
       showOfflineBanner(true, offlineBannerMessage(runtime.lastOfflineReason));
@@ -480,9 +638,9 @@
   }
 
   function bind() {
-    $("#startBtn").addEventListener("click", startLesson);
+    $("#startBtn").addEventListener("click", startOrContinue);
     $("#toQuizBtn").addEventListener("click", renderQuiz);
-    $("#checkBtn").addEventListener("click", checkAnswer);
+    $("#checkBtn").addEventListener("click", function () { checkAnswer(false); });
     $("#nextBtn").addEventListener("click", advance);
     $("#backHomeBtn").addEventListener("click", goHome);
     $("#againBtn").addEventListener("click", startLesson);
@@ -521,7 +679,7 @@
       loadTopic: loadTopic,
       getApiKey: function () { return !!getApiKey(); }
     };
-    loadTopic(false);
+    if (!restoreSession()) loadTopic(false);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
