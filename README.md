@@ -1,6 +1,8 @@
 # GrokApps
 
-Non-game apps and scripts built with (and for) Grok.
+Web apps (and their Android wrappers) built with Grok for Paul Axisa.
+
+Open any app from the [hub page](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/index.html), or use the links below. For a phone, open the preview link and use Add to Home Screen. Service workers need HTTP(S), so don’t open the files as `file://`.
 
 ## Apps
 
@@ -9,27 +11,67 @@ Non-game apps and scripts built with (and for) Grok.
 Flight simulator for delivery PMs — rehearse the room before steering.
 
 - **Flow:** One-tap scenario (or paste artefacts) → timed room dialogue → debrief
-- **API key:** Settings ⚙️ → paste key from [console.x.ai](https://console.x.ai) → Save. Stored in `localStorage` as `project-rehearsal-xai-key`. Browser calls api.x.ai directly (CORS open).
+- **API key:** A built-in key is used by default. Settings ⚙️ can override it on this device (`localStorage`: `project-rehearsal-xai-key`). Browser calls api.x.ai directly.
 - **PWA:** Installable shell
 
-**Phone preview:** [raw.githack Project Rehearsal](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/project-rehearsal/index.html)
+**Preview:** [raw.githack](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/project-rehearsal/index.html)
 
 ### [Daily Learn](./daily-learn/)
 
-Mobile-first PWA for unique educational micro-lessons with quizzes (xAI key in Settings).
+Mobile-first PWA for unique educational micro-lessons with quizzes. Remembers the current lesson, position, quiz answers and recent topics across launches. Settings can override the built-in xAI key.
 
-**Phone preview:** [raw.githack Daily Learn](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/daily-learn/index.html?v=ai1)
+**Preview:** [raw.githack](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/daily-learn/index.html)
+
+**Android:** package `com.paulaxisa.dailylearn` (see [`android/daily-learn/`](./android/daily-learn/)). Current App Tester build: [Daily Learn 1.1](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:ebe770aa36c255287d84c1/releases/7g8l40mo01aog).
 
 ### [Liam Words](./liam-words/)
 
-Phone-first PWA for toddler word practice with Auslan Signbank links.
+Phone-first PWA for toddler word practice: picture-book art, bundled Australian-English audio, and in-app Auslan Signbank videos (CC BY-NC-ND 4.0, auslan.org.au). 22 words.
 
-**Phone preview:** [raw.githack Liam Words](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/liam-words/index.html)
+**Preview:** [raw.githack](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/liam-words/index.html)
 
-## GitHub Pages tip
+**Firebase hosting:** [liam-words-paul.web.app](https://liam-words-paul.web.app)
 
-Enable Pages for this repo with source **Deploy from a branch**, folder `/` (root), then visit `/project-rehearsal/`, `/daily-learn/`, and `/liam-words/`.
+**Android:** package `com.paulaxisa.liamwords` (see [`android/liam-words/`](./android/liam-words/)). Current App Tester build: [Liam Words 1.2](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:827b9c77532a2b267d84c1/releases/1a6olm9l0d5sg).
+
+### [Beach Bubble Pop](./beach-bubble-pop/)
+
+Toddler bubble-popping beach game. Tap or drag to pop bubbles; the phone vibrates on a pop.
+
+**Preview:** [raw.githack](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/beach-bubble-pop/index.html)
+
+**Firebase hosting:** [beach-bubble-pop-paul.web.app](https://beach-bubble-pop-paul.web.app)
+
+**Android:** package `com.paulaxisa.beachbubblepop` (see [`android/beach-bubble-pop/`](./android/beach-bubble-pop/)).
+
+### [Animal Parade](./animal-parade/)
+
+Toddler PWA: a short parade of animals, with zoom reactions and no immediate repeats.
+
+**Preview:** [raw.githack](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/animal-parade/index.html)
+
+### [Car Window Peek](./car-window-peek/)
+
+Toddler PWA: a NSW→QLD car-window scroll. Tap the things you see; drag the clouds.
+
+**Preview:** [raw.githack](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/car-window-peek/index.html)
+
+### [BBQ Dashboard](./bbq-dashboard/)
+
+Barbecue timing dashboard: heat, lid, and per-item timers. Optional custom art can be dropped into `bbq-dashboard/assets/` (see the README there).
+
+**Preview:** [raw.githack](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/bbq-dashboard/index.html)
+
+## Android builds
+
+Capacitor 7 wrappers live under [`android/`](./android/). They are the source used to sign APKs for Firebase App Tester. Copied `www/` assets, `node_modules`, build output, release keystores and `keystore.properties` are not in git — see each app’s README for the copy step and how to point a local keystore at the build.
+
+Use the same release keystore for every update of an app. Signing keys stay only on the build machine.
+
+## GitHub Pages
+
+If Pages is enabled for this repo (Deploy from a branch, folder `/` at the root), the hub is `/` and each app is at `/project-rehearsal/`, `/daily-learn/`, `/liam-words/`, and so on.
 
 ## License
 
-Content and code in this repo unless noted otherwise.
+Content and code in this repo unless noted otherwise. Auslan Signbank videos in Liam Words remain CC BY-NC-ND 4.0, © Auslan Signbank.

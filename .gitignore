@@ -1,0 +1,25 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+*~
+*.swp
+.idea/
+.vscode/
+
+# Dependencies and build output
+node_modules/
+.gradle/
+build/
+dist/
+*.apk
+*.aab
+*.ap_
+
+# Android / Capacitor local and signing files — never commit
+local.properties
+keystore.properties
+keystore/
+*.jks
+*.keystore
+config.local.js
