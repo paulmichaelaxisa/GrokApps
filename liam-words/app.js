@@ -5,7 +5,7 @@
   "use strict";
 
   const { ART } = window.LIAM_ART;
-  const { SIGNBANK_SEARCH, WORDS } = window.LIAM_WORDS;
+  const { WORDS } = window.LIAM_WORDS;
 
   // --- State ---
   let currentWord = null;
@@ -105,6 +105,7 @@
 
   function goHome() {
     stopSpeech();
+    stopSignVideo();
     currentWord = null;
     showScreen(true);
   }
@@ -150,15 +151,10 @@
       chunksEl.appendChild(span);
     });
 
-    // Auslan — Signbank link only
+    // Auslan — bundled Signbank video, played inside the app
     $("auslanWord").textContent = w.label;
-    const link = $("signbankLink");
-    link.href =
-      w.signbankUrl || SIGNBANK_SEARCH + encodeURIComponent(w.label);
-    link.setAttribute(
-      "aria-label",
-      `Watch Auslan Signbank video for ${w.label}`
-    );
+    if (step === 2) loadSignVideo(w);
+    else stopSignVideo();
 
     prevBtn.disabled = step === 0;
     nextBtn.textContent = step === 2 ? "Done" : "Next";
@@ -166,6 +162,86 @@
 
   let currentAudio = null;
   let speakReset = null;
+  const signVideo = $("signVideo");
+  const signVideoWrap = $("signVideoWrap");
+  const signPlayBtn = $("signPlayBtn");
+  const reducedMotion = window.matchMedia
+    ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    : false;
+
+  function showSignPlayButton(show) {
+    if (signPlayBtn) signPlayBtn.hidden = !show;
+    if (signVideoWrap) {
+      signVideoWrap.classList.toggle("is-paused", !!show);
+      signVideoWrap.setAttribute(
+        "aria-label",
+        show ? "Play sign video" : "Replay sign video"
+      );
+    }
+  }
+
+  function tryPlaySignVideo() {
+    if (!signVideo) return;
+    signVideo.muted = true;
+    signVideo.defaultMuted = true;
+    signVideo.playsInline = true;
+    const played = signVideo.play();
+    if (played && typeof played.then === "function") {
+      played.then(() => showSignPlayButton(false)).catch(() => showSignPlayButton(true));
+    } else if (signVideo.paused) {
+      showSignPlayButton(true);
+    }
+  }
+
+  function stopSignVideo() {
+    if (!signVideo) return;
+    try {
+      signVideo.pause();
+      signVideo.currentTime = 0;
+    } catch (_) {}
+    showSignPlayButton(false);
+  }
+
+  function replaySignVideo() {
+    if (!signVideo || !signVideo.dataset.srcLoaded) return;
+    try {
+      signVideo.currentTime = 0;
+    } catch (_) {}
+    showSignPlayButton(false);
+    tryPlaySignVideo();
+  }
+
+  function loadSignVideo(w) {
+    if (!signVideo || !signVideoWrap) return;
+    const src = w && w.signVideo;
+    if (!src) {
+      signVideoWrap.hidden = true;
+      stopSignVideo();
+      signVideo.removeAttribute("src");
+      signVideo.dataset.srcLoaded = "";
+      return;
+    }
+    signVideoWrap.hidden = false;
+    if (signVideo.dataset.srcLoaded !== src) {
+      signVideo.src = src;
+      signVideo.dataset.srcLoaded = src;
+      signVideo.load();
+    }
+    signVideo.muted = true;
+    signVideo.defaultMuted = true;
+    signVideo.autoplay = !reducedMotion;
+    signVideo.loop = !reducedMotion;
+    signVideo.playsInline = true;
+    signVideo.setAttribute("muted", "");
+    signVideo.setAttribute("playsinline", "");
+    signVideo.setAttribute("webkit-playsinline", "");
+    if (reducedMotion) {
+      showSignPlayButton(true);
+      return;
+    }
+    showSignPlayButton(false);
+    tryPlaySignVideo();
+  }
 
   function stopSpeech() {
     if (speakReset) {
@@ -260,6 +336,19 @@
     }
   });
   speakBtn.addEventListener("click", speakWord);
+  if (signVideoWrap) {
+    signVideoWrap.addEventListener("click", replaySignVideo);
+  }
+  if (signVideo) {
+    signVideo.addEventListener("playing", () => showSignPlayButton(false));
+    signVideo.addEventListener("error", () => showSignPlayButton(true));
+    signVideo.addEventListener("pause", () => {
+      if (signVideoWrap && !signVideoWrap.hidden) showSignPlayButton(true);
+    });
+    signVideo.addEventListener("ended", () => {
+      if (signVideoWrap && !signVideoWrap.hidden) showSignPlayButton(true);
+    });
+  }
 
   // Swipe support (simple)
   let touchX = null;

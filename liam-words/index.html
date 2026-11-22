@@ -87,12 +87,19 @@
       <article class="card step-panel" id="step-auslan" data-step="2" hidden>
         <p class="step-label">Auslan</p>
         <h2 class="word-title" id="auslanWord">Milk</h2>
-        <p class="auslan-copy">
-          Watch the Signbank video with Liam. We don’t draw signs here — only the official video.
+        <button type="button" class="sign-video-card" id="signVideoWrap" aria-label="Play sign video">
+          <video id="signVideo" muted loop playsinline webkit-playsinline preload="auto"></video>
+          <span class="sign-play-btn" id="signPlayBtn" hidden>
+            <svg viewBox="0 0 88 88" width="72" height="72" aria-hidden="true">
+              <circle cx="44" cy="44" r="42" fill="rgba(26,42,60,0.72)"/>
+              <polygon points="36,28 36,60 64,44" fill="#fff"/>
+            </svg>
+          </span>
+        </button>
+        <p class="sign-replay-hint" id="signReplayHint">Tap the video to play or replay</p>
+        <p class="sign-attr">
+          Sign videos: Auslan Signbank, auslan.org.au. CC BY-NC-ND 4.0.
         </p>
-        <a class="btn btn-signbank" id="signbankLink" href="#" target="_blank" rel="noopener noreferrer">
-          Watch on Auslan Signbank
-        </a>
         <p class="hint subtle">Confirm with Liam’s therapists / teachers of the deaf.</p>
       </article>
 

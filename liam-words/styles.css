@@ -412,6 +412,73 @@ h1 {
   word-spacing: normal;
 }
 
+
+.sign-video-card {
+  position: relative;
+  display: block;
+  width: min(100%, 320px, calc(38vh * 4 / 3));
+  aspect-ratio: 4 / 3;
+  margin: 8px auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #1A3A6B;
+  box-shadow: 0 6px 0 rgba(26, 42, 60, 0.18);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sign-video-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 28%;
+  transform: scale(1.15);
+  pointer-events: none;
+  background: #1A3A6B;
+}
+
+.sign-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.sign-play-btn[hidden] { display: none; }
+
+.sign-replay-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.sign-attr {
+  margin: 8px 0 0;
+  max-width: 320px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+.sign-attr a {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+#step-auslan .auslan-copy { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sign-video-card video {
+    transform: none;
+  }
+}
+
 /* Soft colour accents per step */
 #step-picture .step-label { color: #3A6FD8; }
 #step-say .step-label { color: #C47A00; }

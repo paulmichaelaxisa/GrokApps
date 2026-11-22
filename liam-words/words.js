@@ -1,4 +1,4 @@
-/* Liam Words — vocabulary. Auslan: Signbank videos only (no invented tips). */
+/* Liam Words — vocabulary. Auslan: official Signbank videos only (no invented tips). */
 (function (g) {
   "use strict";
   const SIGNBANK_SEARCH = "https://auslan.org.au/dictionary/search/?query=";
@@ -9,6 +9,7 @@
       speak: "mummy",
       chunks: ["MUM", "mee"],
       signbankUrl: "https://auslan.org.au/dictionary/words/mummy-1.html",
+      signVideo: "signs/mummy.mp4",
     },
     {
       id: "daddy",
@@ -16,6 +17,7 @@
       speak: "daddy",
       chunks: ["DAD", "dee"],
       signbankUrl: "https://auslan.org.au/dictionary/words/daddy-1.html",
+      signVideo: "signs/daddy.mp4",
     },
     {
       id: "milk",
@@ -23,6 +25,7 @@
       speak: "milk",
       chunks: ["mm", "ilk"],
       signbankUrl: "https://auslan.org.au/dictionary/words/milk-1.html",
+      signVideo: "signs/milk.mp4",
     },
     {
       id: "more",
@@ -30,6 +33,7 @@
       speak: "more",
       chunks: ["maw"],
       signbankUrl: "https://auslan.org.au/dictionary/words/more-1.html",
+      signVideo: "signs/more.mp4",
     },
     {
       id: "ball",
@@ -37,6 +41,7 @@
       speak: "ball",
       chunks: ["baw", "l"],
       signbankUrl: "https://auslan.org.au/dictionary/words/ball-1.html",
+      signVideo: "signs/ball.mp4",
     },
     {
       id: "dog",
@@ -44,13 +49,15 @@
       speak: "dog",
       chunks: ["dog"],
       signbankUrl: "https://auslan.org.au/dictionary/words/dog-1.html",
+      signVideo: "signs/dog.mp4",
     },
     {
       id: "water",
       label: "water",
       speak: "water",
       chunks: ["WAW", "ter"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/water-1.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/water-2.html",
+      signVideo: "signs/water.mp4",
     },
     {
       id: "bye",
@@ -58,6 +65,7 @@
       speak: "bye",
       chunks: ["bye"],
       signbankUrl: "https://auslan.org.au/dictionary/words/bye-1.html",
+      signVideo: "signs/bye.mp4",
     },
     {
       id: "eat",
@@ -65,6 +73,7 @@
       speak: "eat",
       chunks: ["eet"],
       signbankUrl: "https://auslan.org.au/dictionary/words/eat-2.html",
+      signVideo: "signs/eat.mp4",
     },
     {
       id: "book",
@@ -72,13 +81,15 @@
       speak: "book",
       chunks: ["book"],
       signbankUrl: "https://auslan.org.au/dictionary/words/book-1.html",
+      signVideo: "signs/book.mp4",
     },
     {
       id: "car",
       label: "car",
       speak: "car",
       chunks: ["kar"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/car-1.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/car-2.html",
+      signVideo: "signs/car.mp4",
     },
     {
       id: "sleep",
@@ -86,7 +97,88 @@
       speak: "sleep",
       chunks: ["sleep"],
       signbankUrl: "https://auslan.org.au/dictionary/words/sleep-2.html",
+      signVideo: "signs/sleep.mp4",
     },
+    {
+      id: "cat",
+      label: "cat",
+      speak: "cat",
+      chunks: ["cat"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/cat-1.html",
+      signVideo: "signs/cat.mp4",
+    },
+    {
+      id: "duck",
+      label: "duck",
+      speak: "duck",
+      chunks: ["duck"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/duck-1.html",
+      signVideo: "signs/duck.mp4",
+    },
+    {
+      id: "bird",
+      label: "bird",
+      speak: "bird",
+      chunks: ["bird"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/bird-1.html",
+      signVideo: "signs/bird.mp4",
+    },
+    {
+      id: "bath",
+      label: "bath",
+      speak: "bath",
+      chunks: ["bath"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/bath-1.html",
+      signVideo: "signs/bath.mp4",
+    },
+    {
+      id: "shoes",
+      label: "shoes",
+      speak: "shoes",
+      chunks: ["shooz"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/shoe-1.html",
+      signVideo: "signs/shoes.mp4",
+    },
+    {
+      id: "hat",
+      label: "hat",
+      speak: "hat",
+      chunks: ["hat"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/hat-1.html",
+      signVideo: "signs/hat.mp4",
+    },
+    {
+      id: "up",
+      label: "up",
+      speak: "up",
+      chunks: ["up"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/up-1.html",
+      signVideo: "signs/up.mp4",
+    },
+    {
+      id: "please",
+      label: "please",
+      speak: "please",
+      chunks: ["pleez"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/please-2.html",
+      signVideo: "signs/please.mp4",
+    },
+    {
+      id: "finished",
+      label: "finished",
+      speak: "finished",
+      chunks: ["FIN", "isht"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/finished-1.html",
+      signVideo: "signs/finished.mp4",
+    },
+    {
+      id: "truck",
+      label: "truck",
+      speak: "truck",
+      chunks: ["truck"],
+      signbankUrl: "https://auslan.org.au/dictionary/words/truck-2.html",
+      signVideo: "signs/truck.mp4",
+    }
   ];
   g.LIAM_WORDS = { SIGNBANK_SEARCH, WORDS };
 })(window);
