@@ -36,9 +36,17 @@
     return s;
   }
 
-  function getApiKey() {
+  function getBuiltInKey() {
+    var c = window.DAILY_LEARN_CONFIG;
+    return (c && typeof c.xaiKey === "string") ? c.xaiKey.trim() : "";
+  }
+  function getStoredKey() {
     try { return (localStorage.getItem(API_KEY_STORAGE) || "").trim();
     } catch (e) { return ""; }
+  }
+  // A key saved in Settings overrides the built-in key.
+  function getApiKey() {
+    return getStoredKey() || getBuiltInKey();
   }
   function normalizeApiKey(raw) {
     var k = (raw || "").trim();
@@ -184,10 +192,10 @@
 
   function offlineBannerMessage(reason) {
     if (reason === "no key") {
-      return "No xAI key yet — open Settings (gear), paste your key, tap Save key.";
+      return "No xAI key available — using offline topics.";
     }
     if (reason === "api failed") {
-      return "AI call failed — check the key in Settings, or try New topic again.";
+      return "AI call failed (offline?) — showing a curated topic. Tap New topic to try again.";
     }
     if (reason === "AI helper missing") {
       return "AI helper failed to load — hard-refresh the page and try again.";
@@ -253,7 +261,7 @@
     if (!status) return;
     if (key) {
       var tail = key.length > 4 ? key.slice(-4) : "****";
-      status.textContent = "Key set (\u2026" + tail + ")";
+      status.textContent = (getStoredKey() ? "Custom key set (\u2026" : "Built-in key in use (\u2026") + tail + ")";
       status.classList.add("set");
       status.classList.remove("unset");
       if (input) input.placeholder = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";

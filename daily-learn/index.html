@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="Daily Learn — unique educational micro-lessons with quizzes, powered by Grok when you add an xAI key." />
+  <meta name="description" content="Daily Learn — unique educational micro-lessons with quizzes, powered by Grok." />
   <meta name="theme-color" content="#6366f1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -30,7 +30,7 @@
     </header>
 
     <div class="banner" id="offlineBanner" hidden role="status">
-      No xAI key yet — open Settings (gear), paste your key, tap Save key.
+      Using offline topic.
     </div>
 
     <section class="screen active" id="screen-home" aria-label="Home">
@@ -51,7 +51,7 @@
         <p class="footer-note" id="homeStatus">Unique topic each open · finish a lesson to keep your streak</p>
         <p class="install-hint" id="installHint">Tip: on iPhone, tap Share → Add to Home Screen.</p>
       </article>
-      <p class="footer-note">With an xAI key, each open invents a fresh lesson. Curated topics are the offline fallback.</p>
+      <p class="footer-note">Each open invents a fresh lesson with Grok. Curated topics are the offline fallback.</p>
     </section>
 
     <section class="screen" id="screen-lesson" aria-label="Lesson">
@@ -114,7 +114,7 @@
         <h2 id="settingsTitle">Settings</h2>
         <button type="button" class="icon-btn" id="settingsClose" aria-label="Close">✕</button>
       </div>
-      <p class="settings-lead">Paste your xAI API key to generate a unique topic on every open. The key stays only in this device’s browser storage — never in the app repo.</p>
+      <p class="settings-lead">Your xAI key is built in, so nothing to set up. Optionally paste a different key to override it; Clear goes back to the built-in key.</p>
       <label class="field-label" for="apiKeyInput">xAI API key</label>
       <input type="text" id="apiKeyInput" class="field-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" placeholder="xai-… paste your key" />
       <p class="key-status unset" id="keyStatus">Key not set</p>
@@ -142,9 +142,10 @@
   <script src="topics/topic-14.js"></script>
   <script src="topics/topic-15.js"></script>
   <script src="topics/topic-16.js"></script>
-  <script src="content.js?v=ai3"></script>
-  <script src="ai.js?v=ai3"></script>
-  <script src="app.js?v=ai3"></script>
+  <script src="config.js?v=ai4"></script>
+  <script src="content.js?v=ai4"></script>
+  <script src="ai.js?v=ai4"></script>
+  <script src="app.js?v=ai4"></script>
   <script>
     (function () {
       var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
