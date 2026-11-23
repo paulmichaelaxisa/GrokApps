@@ -32,7 +32,7 @@ Phone-first PWA for toddler word practice: picture-book art, bundled Australian-
 
 **Firebase hosting:** [liam-words-paul.web.app](https://liam-words-paul.web.app)
 
-**Android:** package `com.paulaxisa.liamwords` (see [`android/liam-words/`](./android/liam-words/)). Current App Tester build: [Liam Words 1.2](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:827b9c77532a2b267d84c1/releases/1a6olm9l0d5sg).
+**Android:** package `com.paulaxisa.liamwords` (see [`android/liam-words/`](./android/liam-words/)). Current App Tester build: [Liam Words 1.4](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:827b9c77532a2b267d84c1/releases/29vcque45nvs8).
 
 ### [Beach Bubble Pop](./beach-bubble-pop/)
 
