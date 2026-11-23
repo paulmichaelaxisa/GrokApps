@@ -50,6 +50,7 @@
         <span class="dot" data-step="2" aria-label="Auslan"></span>
       </div>
 
+      <div class="step-stage" id="stepStage">
       <!-- Step 1: Picture -->
       <article class="card step-panel" id="step-picture" data-step="0">
         <p class="step-label">Picture</p>
@@ -103,9 +104,20 @@
         <p class="hint subtle">Confirm with Liam’s therapists / teachers of the deaf.</p>
       </article>
 
-      <nav class="nav-row">
-        <button type="button" class="btn btn-ghost" id="prevBtn" disabled>Back</button>
-        <button type="button" class="btn btn-primary" id="nextBtn">Next</button>
+      </div>
+
+      <p class="swipe-hint" id="swipeHint" hidden>
+        <span class="swipe-hint-track" aria-hidden="true">
+          <span class="swipe-hint-arrow swipe-hint-arrow-left">‹</span>
+          <span class="swipe-hint-dots"><i></i><i></i><i></i></span>
+          <span class="swipe-hint-arrow swipe-hint-arrow-right">›</span>
+        </span>
+        <span class="swipe-hint-text">Swipe to go next</span>
+      </p>
+
+      <nav class="nav-row visually-hidden" aria-label="Step navigation">
+        <button type="button" class="btn btn-ghost" id="prevBtn" disabled aria-label="Previous step">Back</button>
+        <button type="button" class="btn btn-primary" id="nextBtn" aria-label="Next step">Next</button>
       </nav>
     </section>
   </div>

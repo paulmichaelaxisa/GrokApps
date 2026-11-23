@@ -3,7 +3,7 @@
 Capacitor 7 wrapper around the [Liam Words](../../liam-words/) web app.
 
 - **Application ID:** `com.paulaxisa.liamwords`
-- **Version in this tree:** 1.2 (versionCode 3)
+- **Version in this tree:** 1.4 (versionCode 5)
 - **Needs:** JDK 21, Android SDK, Node.js, and the existing release keystore
 
 ## Build a release APK

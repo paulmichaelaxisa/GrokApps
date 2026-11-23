@@ -22,6 +22,9 @@
   const nextBtn = $("nextBtn");
   const speakBtn = $("speakBtn");
   const progressDots = $("progressDots");
+  const stepStage = $("stepStage");
+  const swipeHint = $("swipeHint");
+  const HINT_KEY = "liam-words-swipe-hint";
 
   function showScreen(home) {
     screenHome.classList.toggle("active", home);
@@ -96,23 +99,64 @@
   }
 
   function openWord(w) {
+    cancelSwipe();
     stopSpeech();
     currentWord = w;
     step = 0;
     renderStep();
     showScreen(false);
+    maybeShowHint();
   }
 
   function goHome() {
+    cancelSwipe();
     stopSpeech();
     stopSignVideo();
     currentWord = null;
     showScreen(true);
   }
 
+  function maybeShowHint() {
+    if (!swipeHint) return;
+    try {
+      if (localStorage.getItem(HINT_KEY) === "1") {
+        swipeHint.hidden = true;
+        return;
+      }
+    } catch (_) {}
+    swipeHint.hidden = false;
+  }
+
+  function dismissHint() {
+    if (swipeHint) swipeHint.hidden = true;
+    try {
+      localStorage.setItem(HINT_KEY, "1");
+    } catch (_) {}
+  }
+
+  function goPrev() {
+    if (step > 0) {
+      stopSpeech();
+      step -= 1;
+      renderStep();
+    }
+  }
+
+  function goNext() {
+    if (step < 2) {
+      stopSpeech();
+      step += 1;
+      renderStep();
+    } else {
+      goHome();
+    }
+  }
+
   function renderStep() {
     if (!currentWord) return;
     const w = currentWord;
+
+    resetPanelStyles();
 
     // Panels
     $("step-picture").hidden = step !== 0;
@@ -158,6 +202,11 @@
 
     prevBtn.disabled = step === 0;
     nextBtn.textContent = step === 2 ? "Done" : "Next";
+    prevBtn.setAttribute("aria-label", "Previous step");
+    nextBtn.setAttribute(
+      "aria-label",
+      step === 2 ? "Done, back to words" : "Next step"
+    );
   }
 
   let currentAudio = null;
@@ -319,22 +368,8 @@
 
   // Events
   backBtn.addEventListener("click", goHome);
-  prevBtn.addEventListener("click", () => {
-    if (step > 0) {
-      stopSpeech();
-      step -= 1;
-      renderStep();
-    }
-  });
-  nextBtn.addEventListener("click", () => {
-    if (step < 2) {
-      stopSpeech();
-      step += 1;
-      renderStep();
-    } else {
-      goHome();
-    }
-  });
+  prevBtn.addEventListener("click", goPrev);
+  nextBtn.addEventListener("click", goNext);
   speakBtn.addEventListener("click", speakWord);
   if (signVideoWrap) {
     signVideoWrap.addEventListener("click", replaySignVideo);
@@ -350,33 +385,278 @@
     });
   }
 
-  // Swipe support (simple)
-  let touchX = null;
-  screenWord.addEventListener(
-    "touchstart",
-    (e) => {
-      touchX = e.changedTouches[0].screenX;
-    },
-    { passive: true }
-  );
-  screenWord.addEventListener(
-    "touchend",
-    (e) => {
-      if (touchX == null) return;
-      const dx = e.changedTouches[0].screenX - touchX;
-      touchX = null;
-      if (Math.abs(dx) < 50) return;
-      if (dx < 0 && step < 2) {
-        stopSpeech();
-        step += 1;
-        renderStep();
-      } else if (dx > 0 && step > 0) {
-        stopSpeech();
-        step -= 1;
-        renderStep();
+  // Keyboard arrows (desktop)
+  document.addEventListener("keydown", (e) => {
+    if (!currentWord || screenWord.hidden) return;
+    const tag = (e.target && e.target.tagName) || "";
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      goPrev();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      goNext();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      goHome();
+    }
+  });
+
+  // Animated swipe: left = next, right = back
+  const AXIS_LOCK = 10;
+  const COMMIT_RATIO = 0.28;
+  const COMMIT_MIN = 64;
+  const FLICK = 0.5; // px/ms
+  const ANIM_MS = 280;
+  const SPRING_MS = 220;
+  const RUBBER = 0.28;
+
+  let drag = null;
+  let swipeBusy = false;
+  let suppressClick = false;
+
+  function panelFor(s) {
+    return document.querySelector('.step-panel[data-step="' + s + '"]');
+  }
+
+  function resetPanelStyles() {
+    if (stepStage) {
+      stepStage.classList.remove("is-swiping");
+      stepStage.style.height = "";
+    }
+    document.querySelectorAll(".step-panel").forEach((el) => {
+      el.style.transform = "";
+      el.style.opacity = "";
+      el.style.transition = "";
+      el.classList.remove("is-peeking");
+    });
+  }
+
+  function cancelSwipe() {
+    drag = null;
+    swipeBusy = false;
+    resetPanelStyles();
+  }
+
+  function afterTransition(el, ms, cb) {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      cb();
+    };
+    if (reducedMotion || !el || ms <= 0) {
+      finish();
+      return;
+    }
+    el.addEventListener("transitionend", finish, { once: true });
+    setTimeout(finish, ms + 50);
+  }
+
+  function beginSwipeLayer() {
+    if (!stepStage) return;
+    const h = stepStage.getBoundingClientRect().height;
+    if (h > 0) stepStage.style.height = h + "px";
+    stepStage.classList.add("is-swiping");
+  }
+
+  function applyDragVisual(x) {
+    const width = Math.max(1, (stepStage && stepStage.clientWidth) || 300);
+    const cur = panelFor(step);
+    if (!cur) return;
+    const rot = (x / width) * 8;
+    const op = 1 - Math.min(0.35, Math.abs(x) / width * 0.45);
+    if (!reducedMotion) {
+      cur.style.transition = "none";
+      cur.style.transform = "translateX(" + x + "px) rotate(" + rot + "deg)";
+      cur.style.opacity = String(op);
+    }
+    const peekStep = x < 0 ? step + 1 : step - 1;
+    document.querySelectorAll(".step-panel").forEach((el) => {
+      if (el !== cur) {
+        const s = Number(el.dataset.step);
+        if (s !== peekStep) {
+          el.hidden = true;
+          el.classList.remove("is-peeking");
+          el.style.transform = "";
+          el.style.opacity = "";
+        }
       }
+    });
+    if (peekStep >= 0 && peekStep <= 2) {
+      const peek = panelFor(peekStep);
+      if (peek) {
+        peek.hidden = false;
+        peek.classList.add("is-peeking");
+        if (!reducedMotion) {
+          const start = x < 0 ? width : -width;
+          peek.style.transition = "none";
+          peek.style.transform = "translateX(" + (start + x) + "px)";
+          peek.style.opacity = String(Math.min(1, Math.abs(x) / width));
+        }
+      }
+    }
+  }
+
+  function springBack(x) {
+    const width = Math.max(1, (stepStage && stepStage.clientWidth) || 300);
+    const cur = panelFor(step);
+    const peekStep = x < 0 ? step + 1 : step - 1;
+    const peek = peekStep >= 0 && peekStep <= 2 ? panelFor(peekStep) : null;
+    const ms = reducedMotion ? 0 : SPRING_MS;
+    if (cur && !reducedMotion) {
+      cur.style.transition =
+        "transform " + ms + "ms ease-out, opacity " + ms + "ms ease-out";
+      cur.style.transform = "translateX(0) rotate(0deg)";
+      cur.style.opacity = "1";
+    }
+    if (peek && !reducedMotion) {
+      const end = x < 0 ? width : -width;
+      peek.style.transition =
+        "transform " + ms + "ms ease-out, opacity " + ms + "ms ease-out";
+      peek.style.transform = "translateX(" + end + "px)";
+      peek.style.opacity = "0";
+    }
+    swipeBusy = true;
+    afterTransition(cur, ms, () => {
+      resetPanelStyles();
+      if (currentWord) {
+        $("step-picture").hidden = step !== 0;
+        $("step-say").hidden = step !== 1;
+        $("step-auslan").hidden = step !== 2;
+      }
+      swipeBusy = false;
+    });
+  }
+
+  function commitSwipe(dir) {
+    const width = Math.max(1, (stepStage && stepStage.clientWidth) || 300);
+    const cur = panelFor(step);
+    const nextStep = step + dir;
+    const peek = nextStep >= 0 && nextStep <= 2 ? panelFor(nextStep) : null;
+    const ms = reducedMotion ? 0 : ANIM_MS;
+    const endX = dir > 0 ? -width : width;
+    const rot = dir > 0 ? -8 : 8;
+    beginSwipeLayer();
+    if (peek) {
+      peek.hidden = false;
+      peek.classList.add("is-peeking");
+      if (!reducedMotion) {
+        const start = dir > 0 ? width : -width;
+        if (!peek.style.transform) {
+          peek.style.transform = "translateX(" + start + "px)";
+          peek.style.opacity = "0";
+        }
+      }
+    }
+    if (cur && !reducedMotion) {
+      cur.style.transition =
+        "transform " + ms + "ms ease-out, opacity " + ms + "ms ease-out";
+      cur.style.transform =
+        "translateX(" + endX + "px) rotate(" + rot + "deg)";
+      cur.style.opacity = "0";
+    }
+    if (peek && !reducedMotion) {
+      peek.style.transition =
+        "transform " + ms + "ms ease-out, opacity " + ms + "ms ease-out";
+      peek.style.transform = "translateX(0) rotate(0deg)";
+      peek.style.opacity = "1";
+    }
+    swipeBusy = true;
+    dismissHint();
+    afterTransition(cur, ms, () => {
+      resetPanelStyles();
+      swipeBusy = false;
+      if (dir < 0) goPrev();
+      else goNext();
+    });
+  }
+
+  function onPointerDown(e) {
+    if (!currentWord || screenWord.hidden || swipeBusy) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (drag) return;
+    drag = {
+      id: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      dx: 0,
+      axis: null,
+      lastX: e.clientX,
+      lastT: performance.now(),
+      vx: 0,
+      started: false,
+    };
+  }
+
+  function onPointerMove(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (!drag.axis) {
+      if (Math.hypot(dx, dy) < AXIS_LOCK) return;
+      drag.axis = Math.abs(dx) > Math.abs(dy) * 1.1 ? "x" : "y";
+      if (drag.axis === "x") {
+        drag.started = true;
+        beginSwipeLayer();
+      }
+    }
+    if (drag.axis !== "x") return;
+    if (e.cancelable) e.preventDefault();
+    let x = dx;
+    // Rubber-band when there is no previous step
+    if (step === 0 && x > 0) x *= RUBBER;
+    drag.dx = x;
+    const now = performance.now();
+    const dt = now - drag.lastT;
+    if (dt > 0) drag.vx = (e.clientX - drag.lastX) / dt;
+    drag.lastX = e.clientX;
+    drag.lastT = now;
+    applyDragVisual(x);
+  }
+
+  function onPointerUp(e) {
+    if (!drag || (e && e.pointerId !== drag.id)) return;
+    const session = drag;
+    drag = null;
+    if (!session.started || session.axis !== "x") return;
+    const width = Math.max(1, (stepStage && stepStage.clientWidth) || 300);
+    const threshold = Math.max(COMMIT_MIN, width * COMMIT_RATIO);
+    const flickNext = session.vx <= -FLICK;
+    const flickPrev = session.vx >= FLICK;
+    const farNext = session.dx <= -threshold;
+    const farPrev = session.dx >= threshold && step > 0;
+    let dir = 0;
+    if (flickNext || farNext) dir = 1;
+    else if (flickPrev || farPrev) dir = -1;
+    if (dir === -1 && step === 0) dir = 0;
+    if (dir !== 0) {
+      suppressClick = true;
+      setTimeout(() => { suppressClick = false; }, 400);
+      commitSwipe(dir);
+    } else {
+      if (Math.abs(session.dx) > 6) {
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 400);
+      }
+      springBack(session.dx);
+    }
+  }
+
+  const swipeRoot = screenWord;
+  swipeRoot.addEventListener("pointerdown", onPointerDown);
+  window.addEventListener("pointermove", onPointerMove, { passive: false });
+  window.addEventListener("pointerup", onPointerUp);
+  window.addEventListener("pointercancel", onPointerUp);
+  swipeRoot.addEventListener(
+    "click",
+    (e) => {
+      if (!suppressClick) return;
+      e.preventDefault();
+      e.stopPropagation();
+      suppressClick = false;
     },
-    { passive: true }
+    true
   );
 
   // Service worker
