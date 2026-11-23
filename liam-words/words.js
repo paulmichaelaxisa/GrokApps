@@ -16,7 +16,7 @@
       label: "daddy",
       speak: "daddy",
       chunks: ["DAD", "dee"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/daddy-1.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/daddy-2.html",
       signVideo: "signs/daddy.mp4",
     },
     {
@@ -32,7 +32,7 @@
       label: "more",
       speak: "more",
       chunks: ["maw"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/more-1.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/more-3.html",
       signVideo: "signs/more.mp4",
     },
     {
@@ -40,7 +40,7 @@
       label: "ball",
       speak: "ball",
       chunks: ["baw", "l"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/ball-1.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/ball-2.html",
       signVideo: "signs/ball.mp4",
     },
     {
@@ -48,7 +48,7 @@
       label: "dog",
       speak: "dog",
       chunks: ["dog"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/dog-1.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/dog-2.html",
       signVideo: "signs/dog.mp4",
     },
     {
@@ -56,7 +56,7 @@
       label: "water",
       speak: "water",
       chunks: ["WAW", "ter"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/water-2.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/water-1.html",
       signVideo: "signs/water.mp4",
     },
     {
@@ -136,7 +136,7 @@
       label: "shoes",
       speak: "shoes",
       chunks: ["shooz"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/shoe-1.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/shoe-2.html",
       signVideo: "signs/shoes.mp4",
     },
     {
@@ -160,7 +160,7 @@
       label: "please",
       speak: "please",
       chunks: ["pleez"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/please-2.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/please-1.html",
       signVideo: "signs/please.mp4",
     },
     {
@@ -168,7 +168,7 @@
       label: "finished",
       speak: "finished",
       chunks: ["FIN", "isht"],
-      signbankUrl: "https://auslan.org.au/dictionary/words/finished-1.html",
+      signbankUrl: "https://auslan.org.au/dictionary/words/finished-2.html",
       signVideo: "signs/finished.mp4",
     },
     {
