@@ -4,30 +4,53 @@ html, body { margin: 0; height: 100%; background: var(--cream); overflow: hidden
 body { font: 17px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink);
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
 
-#scene { position: fixed; inset: 0; display: grid; place-items: center; background: var(--cream); }
-#stage { position: relative; width: min(96vw, 64vh); aspect-ratio: 1; margin-top: 6vh; }
-#kitten { position: absolute; inset: 0; transform-origin: 50% 82%; will-change: transform; }
-/* Remy's frames are full-bleed pure #FBEFD8, the same as the page, so no edge mask is needed. */
-#kitten img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-#layerB { opacity: 0; }
+#scene { position: fixed; inset: 0; background: var(--cream); }
+:root { --tabs-h: calc(96px + env(safe-area-inset-bottom, 0px)); --top: 56px;
+  --play-h: calc(100vh - var(--tabs-h)); --sq: min(100vw, calc(var(--play-h) - var(--top))); }
+@supports (height: 100dvh) { :root { --play-h: calc(100dvh - var(--tabs-h)); } }
+#play { position: fixed; left: 0; right: 0; top: 0; height: var(--play-h); overflow: hidden; }
+.stage { position: absolute; left: 50%; width: var(--sq); height: var(--sq); transform: translateX(-50%); }
+.stage.center { top: calc(var(--top) + (var(--play-h) - var(--top) - var(--sq)) / 2); }
+.stage.bottom { bottom: 0; }             /* Big Balloon and Sky Balloon sit right on the tab bar */
+.stage.wide { left: 0; width: 100vw; transform: none; }
+.scene-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.clip-host { position: absolute; inset: 0; pointer-events: none; }
+.clip-host.square { left: 50%; width: var(--sq); transform: translateX(-50%); }
+.clip, .k-body img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
-#glow { position: absolute; left: 50.8%; top: 14.6%; width: 46%; aspect-ratio: 1; transform: translate(-50%, -50%);
-  border-radius: 50%; opacity: 0; pointer-events: none; will-change: opacity;
+/* kitten */
+.k-body { position: absolute; inset: 0; transform-origin: 50% 82%; will-change: transform; }
+.k-glow { position: absolute; left: 50.8%; top: 14.6%; width: 46%; aspect-ratio: 1; transform: translate(-50%, -50%);
+  border-radius: 50%; opacity: 0; pointer-events: none; will-change: opacity; z-index: 3;
   background: radial-gradient(circle, rgba(255, 247, 205, 1) 0%, rgba(255, 230, 155, .7) 30%, rgba(255, 220, 150, 0) 68%); }
-
-#ripples { position: absolute; inset: 0; pointer-events: none; }
+.k-ripples { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
 .ripple { position: absolute; left: 50%; top: 70%; width: 60%; aspect-ratio: 1; border-radius: 50%;
   border: 6px solid rgba(186, 166, 220, .55); transform: translate(-50%, -50%) scale(.6); opacity: 0;
   animation: ripple 2.6s ease-out forwards; }
 @keyframes ripple { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); } 20% { opacity: .55; }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.35); } }
 
+/* puppy: ripple layers at (60,130) and (312,130), 80x120, in the 512 scene */
+.p-body { position: absolute; inset: 0; }
+.p-rip { position: absolute; top: 25.39%; width: 15.625%; height: 23.44%; opacity: 0; z-index: 3; pointer-events: none; will-change: transform, opacity; }
+.p-rip.left { left: 11.72%; } .p-rip.right { left: 60.94%; }
+
+/* tabs: icon only, whole cell tappable, calm selected pill */
+#tabs { position: fixed; left: 0; right: 0; bottom: 0; height: var(--tabs-h); z-index: 4; display: grid;
+  grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 4px 6px env(safe-area-inset-bottom, 0px); background: var(--cream); touch-action: manipulation; }
+.tab { border: 0; margin: 0; padding: 0; background: transparent; border-radius: 28px; min-height: 88px; height: 88px; display: grid; place-items: center;
+  transition: background-color .2s ease; touch-action: manipulation; }
+.tab img { width: 70px; height: 70px; opacity: .85; transform: scale(1); transition: transform .2s ease, opacity .2s ease; pointer-events: none; }
+.tab[aria-selected="true"] { background: #F0DDBC; }
+.tab[aria-selected="true"] img { opacity: 1; transform: scale(1.1); }
+.tab:focus-visible { outline: 3px solid #9A8AB8; }
+
 #dim { position: fixed; inset: 0; background: #3a3048; opacity: 0; pointer-events: none; transition: opacity 6s ease; }
 body.done #dim { opacity: .18; }
 
 /* live sound wave across the top; never takes touches, so the settings hold zone still works */
-#wave { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); width: 100%; height: 64px;
-  pointer-events: none; z-index: 1; }
+#wave { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); width: 100%; height: 56px;
+  pointer-events: none; z-index: 2; }
 
 #gate { position: fixed; top: 0; right: 0; width: 96px; height: 96px; z-index: 5; }
 

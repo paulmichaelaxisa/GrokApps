@@ -3,7 +3,7 @@
 Capacitor 7 wrapper around the [Sleepy Kitten](../../sleepy-kitten/) web app.
 
 - **Application ID:** `com.paulaxisa.sleepykitten`
-- **Version in this tree:** 1.0.2 (versionCode 3)
+- **Version in this tree:** 1.1.0 (versionCode 4)
 - **Permissions:** `RECORD_AUDIO` + `MODIFY_AUDIO_SETTINGS`. Capacitor's `BridgeWebChromeClient` shows the
   runtime microphone prompt the first time the page calls `getUserMedia`. `MainActivity` turns off
   `mediaPlaybackRequiresUserGesture` so the kitten listens without a start tap, and keeps the screen on.
@@ -31,4 +31,4 @@ The signed APK is written under `android/app/build/outputs/apk/release/`. Bump `
 `versionName` in `android/app/build.gradle` for every new App Tester build. Always sign with the same keystore.
 
 `./scripts/sync-www.sh` copies `../../sleepy-kitten/` into `www/`, skips `sw.js`, `README.md` and the
-`test/` folder, and removes the service-worker registration. `www/` is gitignored.
+`test/` and `tools/` folders, and removes the service-worker registration. `www/` is gitignored.

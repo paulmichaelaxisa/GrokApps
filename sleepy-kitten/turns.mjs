@@ -110,3 +110,28 @@ export class KittenBrain {
     }
   }
 }
+
+/**
+ * Shared "who's talking" logic for every game (same rules as the kitten):
+ *  - turns: first voice (or first after 15 s quiet) is Dad's; a voice within `turnGap` of the last one
+ *    is the same person carrying on; after a longer pause it's the other person's turn.
+ *  - hold: voice while Dad holds the screen is Dad's, any other voice is Liam's.
+ *  - any: every voice is Liam's.
+ */
+export class TurnTracker {
+  constructor(o = {}) { this.o = { mode: "turns", turnGap: 1.0, quietReset: 15, ...o }; this.reset(); }
+  reset() { this.lastEnd = null; this.current = null; this.hold = false; }
+  set(k, v) { this.o[k] = v; }
+  whoIs(t) {
+    const m = this.o.mode, le = this.lastEnd;
+    if (m === "any") return "liam";
+    if (m === "hold") return this.hold ? "dad" : "liam";
+    if (le && t - le.t < this.o.turnGap) return le.who;
+    if (!le || t - le.t >= this.o.quietReset) return "dad";
+    return le.who === "dad" ? "liam" : "dad";
+  }
+  onOnset(t) { const who = this.whoIs(t); this.current = { who, start: t }; return who; }
+  onEnd(t) { const c = this.current; this.current = null; if (!c) return null; this.lastEnd = { who: c.who, t }; return c.who; }
+  /** Is it (or would the next voice be) Liam's turn? Used for the wave tint. */
+  liamTurn(t) { return this.current ? this.current.who === "liam" : this.whoIs(t) === "liam" && !!this.lastEnd; }
+}

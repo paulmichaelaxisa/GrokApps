@@ -1,312 +1,203 @@
-// Sleepy Kitten: Dad's voice stirs the kitten, Liam's voice wakes it up.
-// Everything runs on the phone. Audio is analysed live and never stored or sent anywhere.
-import { KittenBrain } from "./turns.mjs?v=1";
+// Sleepy Kitten voice games: one shell (mic, calibration, turn-taking, session timer, grown-up
+// settings, rolling wave, tabs) and five games. Everything runs on the phone; audio is analysed live
+// and never stored or sent anywhere.
+import { TurnTracker } from "./turns.mjs?v=2";
+import { Mic } from "./mic.mjs?v=1";
+import KittenGame from "./games/kitten.mjs?v=1";
+import PuppyGame from "./games/puppy.mjs?v=1";
+import BalloonGame from "./games/balloon.mjs?v=1";
+import GardenGame from "./games/garden.mjs?v=1";
+import SkyGame from "./games/sky.mjs?v=1";
 
+const GAMES = [KittenGame, PuppyGame, BalloonGame, GardenGame, SkyGame];
 const $ = (s) => document.querySelector(s);
-const SETTINGS_KEY = "sleepy-kitten-settings";
-const STATS_KEY = "sleepy-kitten-stats";
+const SETTINGS_KEY = "sleepy-kitten-settings", STATS_KEY = "sleepy-kitten-stats";
 const reducedMotionPref = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const settings = Object.assign(
-  { mode: "turns", sensitivity: 0, turnGap: 1.0, sessionSec: 240, sounds: false, calm: reducedMotionPref, floorDb: null },
+  { mode: "turns", sensitivity: 0, turnGap: 1.0, sessionSec: 240, sounds: false, calm: reducedMotionPref, floorDb: null, tab: "kitten" },
   JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")
 );
 const save = () => localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 const now = () => performance.now() / 1000;
 
-const brain = new KittenBrain({ mode: settings.mode, turnGap: settings.turnGap, sessionSec: settings.sessionSec });
-const audio = { ctx: null, stream: null, node: null, post: () => {}, calibrated: false, lastHop: null, running: false };
-const debug = (window.__kitten = { brain, settings, audio, events: [] });
+const turns = new TurnTracker({ mode: settings.mode, turnGap: settings.turnGap });
+const session = { start: null, over: false, calibrated: false };
+let game = null, GameClass = null, openToken = 0, micReady = false, lastHop = null, panelOpen = false;
 
-// ---------- audio ----------
-async function startAudio() {
+const api = {
+  settings, turns, now,
+  stat: (dur) => recordStat(dur),
+  chime: () => maybeChime(),
+};
+
+// ---------- mic ----------
+const mic = new Mic({
+  onHop: (r) => onHop(r),
+  onProblem: (text) => { $("#micProblemText").textContent = text; $("#micProblem").hidden = false; },
+  onNeedTap: () => { $("#tapToStart").hidden = false; },
+  onRunning: () => { $("#tapToStart").hidden = true; keepAwake(); },
+});
+const debug = (window.__kitten = { settings, session, turns, mic, events: [], get game() { return game; }, get gameId() { return GameClass && GameClass.id; }, open: (id) => openGame(id) });
+
+async function startMic() {
   $("#micProblem").hidden = true;
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return micProblem("This browser can't use the microphone.");
-  try {
-    audio.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
-    });
-  } catch (err) {
-    return micProblem(err && err.name === "NotAllowedError"
-      ? "Microphone access is off. Allow the microphone for this app in your phone's settings, then tap Try again."
-      : "The microphone isn't available right now. Tap Try again.");
-  }
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  audio.ctx = new Ctx({ latencyHint: "interactive" });
-  const src = audio.ctx.createMediaStreamSource(audio.stream);
-  const sink = audio.ctx.createGain(); sink.gain.value = 0; sink.connect(audio.ctx.destination);
-  if (audio.ctx.audioWorklet) {
-    await audio.ctx.audioWorklet.addModule("mic-worklet.js?v=1");
-    audio.node = new AudioWorkletNode(audio.ctx, "mic-processor", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
-    audio.node.port.onmessage = (e) => onHop(e.data);
-    audio.post = (m) => audio.node.port.postMessage(m);
-  } else {
-    // Older browsers: run the same detector on the main thread.
-    const { VoiceDetector } = await import("./detector.mjs");
-    const d = new VoiceDetector(audio.ctx.sampleRate);
-    const { handle } = { handle: (det, m) => {
-      if (m.type === "floor") det.setFloor(m.db); else if (m.type === "sens") det.setSensitivity(m.db);
-      else if (m.type === "calibrate") det.startCalibration(m.sec || 3); else if (m.type === "mute") det.muteUntil(det.time + m.sec);
-    } };
-    audio.node = audio.ctx.createScriptProcessor(1024, 1, 1);
-    audio.node.onaudioprocess = (e) => { for (const r of d.process(e.inputBuffer.getChannelData(0))) onHop(r); };
-    audio.post = (m) => handle(d, m);
-  }
-  src.connect(audio.node); audio.node.connect(sink);
-  audio.post({ type: "sens", db: settings.sensitivity });
-  if (settings.floorDb != null) audio.post({ type: "floor", db: settings.floorDb });
-  audio.post({ type: "calibrate", sec: 3 });  // kitten sleeps while we measure the room
-  await ensureRunning();
+  micReady = session.calibrated;                 // calibrate once per session, reuse across tabs
+  lastHop = null;
+  await mic.start({ sens: settings.sensitivity, floorDb: settings.floorDb, calibrate: !session.calibrated });
 }
+$("#tapToStart").addEventListener("pointerdown", async (e) => { e.preventDefault(); await mic.ensureRunning(); });
+$("#micRetry").addEventListener("click", () => startMic());
 
-async function ensureRunning() {
-  if (!audio.ctx) return;
-  if (audio.ctx.state !== "running") {
-    // resume() can stay pending until a user gesture, so don't wait on it forever
-    try { await Promise.race([audio.ctx.resume(), new Promise((r) => setTimeout(r, 500))]); } catch (_) {}
-  }
-  if (audio.ctx.state !== "running") {
-    // The browser wants one tap first (web only; the Android app and home-screen app don't).
-    $("#tapToStart").hidden = false;
-  } else {
-    $("#tapToStart").hidden = true;
-    audio.running = true;
-    keepAwake();
-  }
-}
-$("#tapToStart").addEventListener("pointerdown", async (e) => { e.preventDefault(); await ensureRunning(); });
-
-function micProblem(text) { $("#micProblemText").textContent = text; $("#micProblem").hidden = false; }
-$("#micRetry").addEventListener("click", () => { stopAudio(); startAudio(); });
-
-function stopAudio() {
-  if (audio.stream) audio.stream.getTracks().forEach((t) => t.stop());
-  if (audio.ctx) audio.ctx.close().catch(() => {});
-  audio.stream = audio.ctx = audio.node = null; audio.running = false; audio.calibrated = false;
-  releaseWake();
-}
-
-let panelOpen = false;
 function onHop(r) {
-  audio.lastHop = r;
+  lastHop = r;
   if (r.event && r.event.type === "calibrated") {
     settings.floorDb = r.event.floorDb; save();
-    if (!audio.calibrated) { audio.calibrated = true; brain.start(now()); }
+    session.calibrated = true; micReady = true;
+    if (session.start == null) session.start = now();
     updateFloorInfo();
   }
-  if (!audio.calibrated || panelOpen) return;
+  if (!micReady || panelOpen || !game || session.over && game.done) return;
   const t = now();
   for (const ev of [r.event, r.event2]) {
     if (!ev) continue;
     if (ev.type === "onset") {
-      const who = brain.onOnset(t);
-      if (who) { debug.events.push({ t, type: "onset", who, state: brain.state }); onsetKick(who); }
+      const who = game.ownTurns ? game.onOnset(t) : (() => { const w = turns.onOnset(t); game.onOnset(t, w); return w; })();
+      debug.events.push({ t, game: GameClass.id, type: "onset", who });
     } else if (ev.type === "end") {
-      const who = brain.onEnd(t, ev.duration);
-      if (who) debug.events.push({ t, type: "end", who, dur: ev.duration, state: brain.state });
-      if (who === "liam") { recordStat(ev.duration); if (brain.reward && brain.reward.purr) ripples(brain.reward.size); maybeChime(); }
+      const who = game.ownTurns ? game.onEnd(t, ev.duration) : (() => { const w = turns.onEnd(t); game.onEnd(t, ev.duration, w); return w; })();
+      debug.events.push({ t, game: GameClass.id, type: "end", who, dur: ev.duration });
     }
   }
 }
+KittenGame.prototype.ownTurns = true; // the kitten's brain does its own turn-taking (same rules)
 
 // ---------- optional app sound (off by default) ----------
 function maybeChime() {
-  if (!settings.sounds || !audio.ctx || brain.current) return;
-  const dur = 0.45, ctx = audio.ctx, t0 = ctx.currentTime + 0.05;
-  audio.post({ type: "mute", sec: dur + 0.05 + 0.3 }); // don't hear our own sound, plus 300 ms
+  const ctx = mic.ctx;
+  if (!settings.sounds || !ctx || (lastHop && lastHop.active)) return; // never while he's vocalising
+  const dur = 0.45, t0 = ctx.currentTime + 0.05;
+  mic.post({ type: "mute", sec: dur + 0.05 + 0.3 }); // ignore our own sound, plus 300 ms
   const g = ctx.createGain(); g.gain.setValueAtTime(0, t0);
   g.gain.linearRampToValueAtTime(0.06, t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.0005, t0 + dur);
   g.connect(ctx.destination);
-  [523.25, 659.25].forEach((f, i) => {
-    const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f;
-    o.connect(g); o.start(t0 + i * 0.12); o.stop(t0 + dur);
-  });
+  [523.25, 659.25].forEach((f, i) => { const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f; o.connect(g); o.start(t0 + i * 0.12); o.stop(t0 + dur); });
 }
 
-// ---------- keep the screen on during a session ----------
+// ---------- screen on ----------
 let wake = null;
-async function keepAwake() { try { if ("wakeLock" in navigator && !wake) wake = await navigator.wakeLock.request("screen"); wake?.addEventListener?.("release", () => (wake = null)); } catch (_) {} }
+async function keepAwake() { try { if ("wakeLock" in navigator && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => (wake = null)); } } catch (_) {} }
 function releaseWake() { try { wake && wake.release(); } catch (_) {} wake = null; }
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && audio.running && brain.listening) { keepAwake(); ensureRunning(); } });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && mic.ctx) { keepAwake(); mic.ensureRunning(); } });
 
-// ---------- drawing ----------
-// Remy's art: 512x512 animated WebPs at 12 fps on opaque cream. Loops: sleeping, waiting,
-// awake_wiggle (3 s, starts/ends on the waiting pose). One-shots (2.5 s, switched on a timer, not on
-// the WebP loop flag): stirring (sleeping -> waiting), curling_up (waiting -> sleeping).
-const CLIPS = {
-  sleeping: { loop: true, sec: 3 },
-  stirring: { loop: false, sec: 2.5, next: "waiting" },
-  waiting: { loop: true, sec: 3 },
-  awake_wiggle: { loop: true, sec: 3 },
-  curling_up: { loop: false, sec: 2.5, next: "sleeping" },
-};
-const artUrl = (name, ext = "webp") => `art/kitten_${name}.${ext}`;
-const blobs = {};
-let blobsReady = Promise.all(Object.keys(CLIPS).map(async (k) => {
-  try { const r = await fetch(artUrl(k)); if (r.ok) blobs[k] = await r.blob(); } catch (_) {}
-}));
-
-const kitten = $("#kitten"), glowEl = $("#glow");
-let front = $("#layerA"), back = $("#layerB");
-let clip = null, clipStart = 0, pending = 0, fadeT = 0, fadeSec = 0, wiggleExitAt = null, frontUrl = null, playN = 0;
-let lvl = 0, glowA = 0, kick = 0, lastT = now();
-
-function onsetKick(who) { kick = who === "liam" ? 1 : 0.6; }
-
-/** Start a clip from its first frame on the back layer, then fade it over the front. */
-function play(name, fade = 0.15, still = false) {
-  const token = ++pending;
-  let url;
-  if (still) url = artUrl(name, "png");
-  else if (blobs[name]) url = URL.createObjectURL(blobs[name]); // fresh URL = animation restarts at frame 0
-  else url = `${artUrl(name)}?r=${++playN}`;
-  back.onload = () => {
-    if (token !== pending) return;
-    clip = still ? null : name; clipStart = now(); wiggleExitAt = null;
-    fadeSec = fade; fadeT = 0;
-    back.style.zIndex = 2; front.style.zIndex = 1;
-    const old = front, oldUrl = frontUrl;
-    front = back; back = old; frontUrl = url.startsWith("blob:") ? url : null;
-    front.style.opacity = fade > 0 ? 0 : 1;
-    setTimeout(() => { if (oldUrl) URL.revokeObjectURL(oldUrl); }, (fade + 0.3) * 1000);
-    pending = 0;
-  };
-  back.onerror = () => { if (token === pending) pending = 0; };
-  back.src = url;
+// ---------- games and tabs ----------
+const play = $("#play"), tabsEl = $("#tabs");
+async function openGame(id) {
+  const G = GAMES.find((g) => g.id === id) || GAMES[0];
+  const token = ++openToken;
+  mic.stop(); micReady = false; lastHop = null;     // only the visible game ever listens
+  if (game) { try { game.unmount(); } catch (_) {} game = null; }
+  turns.reset(); holding.clear();
+  GameClass = G; settings.tab = G.id; save(); renderTabs();
+  const stage = document.createElement("div");
+  stage.className = `stage ${G.anchor === "bottom" ? "bottom" : "center"}${G.wide ? " wide" : ""}`;
+  stage.dataset.game = G.id;
+  play.replaceChildren(stage);
+  const g = new G(api);
+  await g.mount(stage, { over: session.over });
+  if (token !== openToken) { g.unmount(); return; }
+  game = g;
+  if (!session.over) await startMic();
 }
 
-/** Choose the next clip so poses always join up. */
-function direct(t) {
-  if (pending || document.body.classList.contains("done")) return;
-  const target = brain.pose(); // "sleeping" | "waiting" | "wiggle"
-  if (!clip) { play(target === "waiting" ? "waiting" : "sleeping", 0.3); return; }
-  const c = CLIPS[clip], el = t - clipStart;
-  if (target === "wiggle") { if (clip !== "awake_wiggle") play("awake_wiggle", 0.2); return; }
-  if (clip === "awake_wiggle") {
-    // finish whole cycles so it lands back on the waiting pose; a bigger reply gets more cycles
-    if (wiggleExitAt == null) {
-      const minCycles = brain.reward && brain.reward.size >= 0.6 ? 2 : 1;
-      wiggleExitAt = clipStart + Math.max(minCycles, Math.ceil((el + 0.05) / 3)) * 3;
+let lastSwitch = -1, tapStart = null;
+function renderTabs() {
+  if (!tabsEl.children.length) {
+    for (const G of GAMES) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tab"; b.dataset.id = G.id; b.setAttribute("role", "tab");
+      b.setAttribute("aria-label", { kitten: "Sleepy Kitten", puppy: "Copycat Puppy", balloon: "Big Balloon", garden: "Sound Garden", sky: "Sky Balloon" }[G.id]);
+      b.innerHTML = `<img src="${G.icon}" alt="" draggable="false">`;
+      tabsEl.appendChild(b);
     }
-    if (t >= wiggleExitAt) play("waiting", 0.08);
-    return;
   }
-  if (!c.loop) { if (el >= c.sec) play(c.next, 0.08); return; } // one-shot: switch on a 2.5 s timer
-  if (clip === "sleeping" && target === "waiting") play("stirring", 0.15);
-  else if (clip === "waiting" && target === "sleeping") play("curling_up", 0.15);
+  for (const b of tabsEl.children) b.setAttribute("aria-selected", String(b.dataset.id === (GameClass && GameClass.id)));
 }
+// deliberate taps only: same tab, little movement, not too long; 400 ms debounce between switches
+tabsEl.addEventListener("pointerdown", (e) => { const b = e.target.closest(".tab"); tapStart = b ? { b, x: e.clientX, y: e.clientY, t: now(), id: e.pointerId } : null; });
+tabsEl.addEventListener("pointerup", (e) => {
+  const s = tapStart; tapStart = null;
+  if (!s || s.id !== e.pointerId) return;
+  const b = e.target.closest(".tab"), t = now();
+  if (b !== s.b || Math.hypot(e.clientX - s.x, e.clientY - s.y) > 14 || t - s.t > 0.9) return;
+  if (t - lastSwitch < 0.4 || b.dataset.id === GameClass.id) return;
+  lastSwitch = t; openGame(b.dataset.id);
+});
+tabsEl.addEventListener("pointercancel", () => (tapStart = null));
+tabsEl.addEventListener("contextmenu", (e) => e.preventDefault());
 
-function ripples(size) {
-  if (settings.calm) return;
-  const host = $("#ripples"), n = size > 0.7 ? 3 : 2;
-  for (let i = 0; i < n; i++) {
-    const r = document.createElement("div"); r.className = "ripple"; r.style.animationDelay = `${i * 0.45}s`;
-    host.appendChild(r); setTimeout(() => r.remove(), 3500 + i * 450);
-  }
-}
+// ---------- hold-for-Dad ----------
+const holding = new Set();
+const setHold = (on) => { turns.hold = on; game && game.setHold && game.setHold(on); };
+window.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("#gate, dialog, #tapToStart, #micProblem, #tabs")) return;
+  holding.add(e.pointerId); setHold(true);
+});
+const release = (e) => { holding.delete(e.pointerId); if (!holding.size) setHold(false); };
+window.addEventListener("pointerup", release); window.addEventListener("pointercancel", release);
 
+// ---------- main loop ----------
+let lvl = 0, lastT = now();
 function frame() {
   const t = now(), dt = Math.min(0.1, t - lastT); lastT = t;
-  if (audio.calibrated && !panelOpen) {
-    const prev = brain.state;
-    brain.tick(t);
-    if (prev !== "done" && brain.state === "done") finishSession();
+  const target = lastHop && lastHop.active ? lastHop.level : 0;
+  lvl += (target - lvl) * (1 - Math.exp(-dt / (target > lvl ? 0.03 : 0.25)));  // fast attack, slow release
+  if (game && !panelOpen) {
+    if (session.start != null && !session.over && t - session.start >= settings.sessionSec) { session.over = true; game.endSession(t); }
+    try { game.frame(t, dt, lvl); } catch (err) { console.error(err); }
+    if (session.over && game.done && mic.ctx) { mic.stop(); micReady = false; lastHop = null; releaseWake(); document.body.classList.add("done"); }
   }
-  direct(t);
-  if (fadeT < 1) { fadeT = fadeSec > 0 ? Math.min(1, fadeT + dt / fadeSec) : 1; front.style.opacity = fadeT.toFixed(3); }
-
-  // smoothed loudness: fast attack, slower release
-  const hop = audio.lastHop, target = hop && hop.active ? hop.level : 0;
-  lvl += (target - lvl) * (1 - Math.exp(-dt / (target > lvl ? 0.03 : 0.25)));
-  kick *= Math.exp(-dt / 0.35);
-
-  // light procedural motion on top of the art: an instant "I heard you" lift, size with loudness,
-  // and a little hop after a long reply. The art itself does the stirring and the wiggle.
-  const st = brain.state, calm = settings.calm;
-  let lift = 0, scale = 1;
-  if (st === "stir" || st === "wait" || st === "wake") {
-    lift = -(lvl * 8 + kick * 8); scale = 1 + lvl * 0.035 + kick * 0.02;
-  } else if (st === "happy" && !calm) {
-    const r = brain.reward || { size: 0.3, hop: false }, el = t - brain.since;
-    if (r.hop && el < 1.6) lift = -Math.abs(Math.sin(Math.PI * 1.25 * el)) * 16 * r.size;
-  }
-  kitten.style.transform = `translateY(${lift.toFixed(1)}px) scale(${scale.toFixed(3)})`;
-
-  // "your turn" glow in the clear space above the waiting kitten: slow 0.4 Hz pulse, never flashing
-  const gOn = brain.glow && !panelOpen && (clip === "waiting" || clip === "sleeping" || (clip === "stirring" && t - clipStart > 1.5));
-  const gTarget = gOn ? 0.5 + 0.3 * (0.5 + 0.5 * Math.sin((2 * Math.PI * t) / 2.6)) : 0;
-  glowA += (gTarget - glowA) * (1 - Math.exp(-dt / 0.6));
-  glowEl.style.opacity = glowA.toFixed(3);
-
   drawWave(t, dt);
   if (panelOpen) drawMeter();
   requestAnimationFrame(frame);
 }
 
 // ---------- rolling sound wave across the top ----------
-// Thin bright line, driven by the same smoothed voice-band level as the kitten. A gentle idle swell
-// when quiet, taller with louder voices (capped), slower and smaller with calm/reduced motion.
-// Coral while it's Dad's go, easing to teal for Liam's turn. Flattens and fades when the session ends.
+// Thin bright line, driven by the same smoothed voice-band level as the games. Gentle idle swell when
+// quiet, taller with louder voices (capped), slower and smaller with calm motion. Coral for Dad's go,
+// easing to teal for Liam's turn. Flattens and dims when the session ends and the mic is released.
 const wave = $("#wave"), wctx = wave.getContext("2d");
 let wAmp = 0, wPhase = 0, wTint = 0, wAlpha = 1, wW = 0, wH = 0, wDpr = 1;
-function sizeWave() {
-  wDpr = Math.min(2, window.devicePixelRatio || 1);
-  wW = wave.clientWidth; wH = wave.clientHeight;
-  wave.width = Math.round(wW * wDpr); wave.height = Math.round(wH * wDpr);
-}
+function sizeWave() { wDpr = Math.min(2, window.devicePixelRatio || 1); wW = wave.clientWidth; wH = wave.clientHeight; wave.width = Math.round(wW * wDpr); wave.height = Math.round(wH * wDpr); }
 window.addEventListener("resize", sizeWave); sizeWave();
 const mixRgb = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
 const CORAL = [255, 112, 84], TEAL = [18, 178, 170];
 function drawWave(t, dt) {
   if (!wW) return;
-  const calm = settings.calm, done = document.body.classList.contains("done") || !brain.listening;
-  const idle = calm ? 1.5 : 3;                       // px, gentle swell when quiet
-  const peak = calm ? 10 : 20;                       // px, cap at full voice
+  const calm = settings.calm, done = !mic.ctx;
+  const idle = calm ? 1.5 : 3, peak = calm ? 10 : 20;
   const target = done ? 0 : idle + (peak - idle) * Math.min(1, lvl * 1.4);
-  wAmp += (target - wAmp) * (1 - Math.exp(-dt / (target > wAmp ? 0.12 : 0.45))); // smooth, no flicker
+  wAmp += (target - wAmp) * (1 - Math.exp(-dt / (target > wAmp ? 0.12 : 0.45)));
   wPhase += dt * (calm ? 0.9 : 1.8) * (1 + Math.min(1, lvl) * 0.6);
-  const liamTurn = brain.state === "wake" || brain.state === "happy" || brain.glow;
-  wTint += ((liamTurn ? 1 : 0) - wTint) * (1 - Math.exp(-dt / 0.8));
+  const liam = !!(game && !done && game.liamTurn && game.liamTurn(t));
+  wTint += ((liam ? 1 : 0) - wTint) * (1 - Math.exp(-dt / 0.8));
   wAlpha += ((done ? 0.25 : 1) - wAlpha) * (1 - Math.exp(-dt / 1.5));
-  const [r, g, b] = mixRgb(CORAL, TEAL, wTint);
-  const c = wctx, mid = wH * 0.5;
-  c.setTransform(wDpr, 0, 0, wDpr, 0, 0);
-  c.clearRect(0, 0, wW, wH);
-  c.beginPath();
+  const [r, g, b] = mixRgb(CORAL, TEAL, wTint), c = wctx, mid = wH * 0.5;
+  c.setTransform(wDpr, 0, 0, wDpr, 0, 0); c.clearRect(0, 0, wW, wH); c.beginPath();
   for (let x = 0; x <= wW; x += 4) {
-    const u = x / wW;
-    const env = Math.sin(Math.PI * u);              // tapers to the screen edges
+    const u = x / wW, env = Math.sin(Math.PI * u);
     const y = Math.sin(u * 9.0 - wPhase * 2.1) * 0.6 + Math.sin(u * 15.7 - wPhase * 3.3 + 1.3) * 0.28 + Math.sin(u * 4.1 + wPhase * 1.2) * 0.22;
     const py = mid + y * wAmp * (0.35 + 0.65 * env);
     if (x === 0) c.moveTo(x, py); else c.lineTo(x, py);
   }
   c.lineCap = "round"; c.lineJoin = "round";
-  c.strokeStyle = `rgba(${r},${g},${b},${(0.28 * wAlpha).toFixed(3)})`; c.lineWidth = 8; c.stroke(); // soft glow
+  c.strokeStyle = `rgba(${r},${g},${b},${(0.28 * wAlpha).toFixed(3)})`; c.lineWidth = 8; c.stroke();
   c.strokeStyle = `rgba(${r},${g},${b},${(0.95 * wAlpha).toFixed(3)})`; c.lineWidth = 3; c.stroke();
 }
-
-function finishSession() {
-  stopAudio();                   // stops listening: the mic is released
-  play("sleeping", 1.5, true);   // calm still of the sleeping kitten
-  document.body.classList.add("done");
-}
-
-// ---------- hold-for-Dad ----------
-const holding = new Set();
-window.addEventListener("pointerdown", (e) => {
-  if (e.target.closest("#gate, dialog, #tapToStart, #micProblem")) return;
-  holding.add(e.pointerId); brain.setHold(true);
-});
-const release = (e) => { holding.delete(e.pointerId); if (!holding.size) brain.setHold(false); };
-window.addEventListener("pointerup", release); window.addEventListener("pointercancel", release);
 
 // ---------- parent gate: press and hold the top-right corner for 2 s ----------
 let gateTimer = null;
 const gate = $("#gate");
-gate.addEventListener("pointerdown", (e) => {
-  e.preventDefault();
-  clearTimeout(gateTimer);
-  gateTimer = setTimeout(openPanel, 2000);
-});
+gate.addEventListener("pointerdown", (e) => { e.preventDefault(); clearTimeout(gateTimer); gateTimer = setTimeout(openPanel, 2000); });
 ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => gate.addEventListener(ev, () => clearTimeout(gateTimer)));
 gate.addEventListener("contextmenu", (e) => e.preventDefault());
 
@@ -321,8 +212,7 @@ function openPanel() {
   refreshLabels(); updateFloorInfo(); showStats();
   dlg.showModal();
 }
-dlg.addEventListener("close", () => { panelOpen = false; if (brain.current) brain.current = null; });
-
+dlg.addEventListener("close", () => { panelOpen = false; turns.current = null; if (game && game.brain) game.brain.current = null; });
 function refreshLabels() {
   const s = +$("#sens").value;
   $("#sensOut").textContent = s === 0 ? "normal" : s > 0 ? `+${s}` : `${s}`;
@@ -331,29 +221,29 @@ function refreshLabels() {
 }
 dlg.addEventListener("input", (e) => {
   const el = e.target;
-  if (el.name === "mode") { settings.mode = el.value; brain.set("mode", el.value); }
-  if (el.name === "session") { settings.sessionSec = +el.value; brain.set("sessionSec", +el.value); }
-  if (el.id === "sens") { settings.sensitivity = +el.value; audio.post({ type: "sens", db: settings.sensitivity }); }
-  if (el.id === "turnGap") { settings.turnGap = +el.value; brain.set("turnGap", +el.value); }
+  if (el.name === "mode") { settings.mode = el.value; turns.set("mode", el.value); game?.setOption?.("mode", el.value); }
+  if (el.name === "session") settings.sessionSec = +el.value;
+  if (el.id === "sens") { settings.sensitivity = +el.value; mic.post({ type: "sens", db: settings.sensitivity }); }
+  if (el.id === "turnGap") { settings.turnGap = +el.value; turns.set("turnGap", +el.value); game?.setOption?.("turnGap", +el.value); }
   if (el.id === "sounds") settings.sounds = el.checked;
   if (el.id === "calm") settings.calm = el.checked;
   save(); refreshLabels();
 });
-$("#recal").addEventListener("click", () => { audio.post({ type: "calibrate", sec: 3 }); $("#floorInfo").textContent = "Measuring… stay quiet for 3 seconds."; });
+$("#recal").addEventListener("click", () => { mic.post({ type: "calibrate", sec: 3 }); $("#floorInfo").textContent = "Measuring… stay quiet for 3 seconds."; });
 $("#newSession").addEventListener("click", async () => {
-  dlg.close(); document.body.classList.remove("done"); clip = null;
-  if (!audio.ctx) { audio.calibrated = false; brain.start(now()); await startAudio(); }
-  else brain.start(now());
+  dlg.close(); document.body.classList.remove("done");
+  Object.assign(session, { start: null, over: false, calibrated: false });
+  turns.reset();
+  if (game) game.newSession(now());
+  await startMic();
 });
-
 function updateFloorInfo() {
-  const h = audio.lastHop;
   if (settings.floorDb == null) return;
-  const thr = h && h.thr != null ? ` Listening above ${h.thr.toFixed(0)} dB.` : "";
+  const thr = lastHop && lastHop.thr != null ? ` Listening above ${lastHop.thr.toFixed(0)} dB.` : "";
   $("#floorInfo").textContent = `Room noise: ${settings.floorDb.toFixed(0)} dB.${thr}`;
 }
 function drawMeter() {
-  const h = audio.lastHop; if (!h) return;
+  const h = lastHop; if (!h) return;
   const pct = (db) => Math.max(0, Math.min(100, ((db + 90) / 80) * 100));
   $("#meterBar").style.width = `${pct(h.db)}%`;
   if (h.thr != null) $("#meterThr").style.left = `${pct(h.thr)}%`;
@@ -370,16 +260,13 @@ function recordStat(dur) {
   for (const k of Object.keys(s).sort().slice(0, -14)) delete s[k];
   localStorage.setItem(STATS_KEY, JSON.stringify(s));
 }
-function showStats() {
-  const d = loadStats()[today()] || { sounds: 0, longest: 0 };
-  $("#statSounds").textContent = d.sounds; $("#statLongest").textContent = d.longest.toFixed(1);
-}
+function showStats() { const d = loadStats()[today()] || { sounds: 0, longest: 0 }; $("#statSounds").textContent = d.sounds; $("#statLongest").textContent = d.longest.toFixed(1); }
 $("#clearStats").addEventListener("click", () => { localStorage.removeItem(STATS_KEY); showStats(); });
 
 // ---------- go ----------
-blobsReady.then(() => play("sleeping", 0));
+renderTabs();
 requestAnimationFrame(frame);
-startAudio();
+openGame(settings.tab);
 
   // Service worker
   if ("serviceWorker" in navigator) {

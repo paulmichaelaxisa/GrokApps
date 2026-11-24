@@ -5,6 +5,10 @@ sleeping kitten and a warm glow says "your turn". Liam's reply, any sound at all
 happy wiggle, and a longer sound gets a bigger wiggle. At the end of the session the kitten curls up,
 falls asleep and the app stops listening.
 
+Since 1.1.0 there are **five voice games** as picture-only tabs along the bottom (Remy's art from
+`/workspace/voice-games-art/`, names unchanged, under `art/puppy`, `art/balloon`, `art/garden`,
+`art/sky`, `art/tabs`).
+
 - **Web:** https://sleepy-kitten-paul.web.app (Firebase Hosting site `sleepy-kitten-paul`)
 - **Android:** `com.paulaxisa.sleepykitten`, see [`../android/sleepy-kitten/`](../android/sleepy-kitten/)
 - Design spec and speech guidance: `/workspace/liam-voice-visualiser/DESIGNS.md` (Sleepy Kitten, from Remy and Sprout)
@@ -42,6 +46,27 @@ One-shots switch on a 2.5 s timer, not on the WebP loop flag. Each play uses a f
 animation always starts from frame 0, and seams line up with the poses Remy matched. Within ~45 ms of a
 voice the kitten also gets a small procedural lift and grows a little with loudness (capped).
 
+## The five tabs
+| Tab | What a voice does | Session end |
+|---|---|---|
+| **Sleepy Kitten** | As above (turn order, glow, wiggle for Liam). | Curls up and sleeps. |
+| **Copycat Puppy** | Talks along while there's a voice (`puppy_talking_soft` for quiet, `puppy_talking` for loud, 130 ms crossfade with hysteresis) and muzzle ripples follow the loudness (40 ms rise). Back to `puppy_waiting` 400 ms after the voice stops. A sound from Liam of 2 s or more gets one `puppy_happy_wag`. | `puppy_lying_down`, then `puppy_sleeping`; `puppy_waking` on New session. |
+| **Big Balloon** | Live layers (hand, string, balloon). Any voice blows it up (about 3 s of voice to fill, louder is a bit faster) with soft glow rings. A pause lets out 10% over 4 s after 1.5 s. When it's full, `balloon_pop`, then `balloon_new_balloon`, then back to live. Gentle 3 s bob. | Shrinks, `balloon_drift_away`, then `balloon_resting`. |
+| **Sound Garden** | Built live from soil, the growth sheets, bee, sparkles and butterflies (not `garden_full_garden`). After 200 ms of voice a seed lands in the next of 8 spots, and voice grows it (about 1.5 s to bloom, height 0.8–1.1 from loudness). Flowers never shrink. On a bloom the bee visits and sparkles twinkle. After 8 flowers the full garden sways with 2 butterflies for 9 s, then folds back and starts again. | Flowers fold, the bee rests, then `garden_resting`. |
+| **Sky Balloon** | The basket rises with voice time (about 2.5 s of voice to reach the clouds, louder 0.7–1.3× faster), hangs 0.8 s, then floats down slowly. The burner glow follows loudness. One second at the top plays `sky_cloud_reward` and the sun glows. `hills_wide` on wide screens. | Drifts down, then `sky_resting`. |
+
+No game uses pitch. Sky height is voice time plus loudness, the balloon bobs, the garden's flower
+types come from the fixed slots, and the puppy doesn't tilt its head. Kitten and Puppy save the big
+reward for Liam's turn. Balloon, Garden and Sky grow from anyone's voice, so Dad can model.
+
+**Tabs:** icon-only, 88 px tall, whole cell tappable, selected tab on a soft pill (×1.1), no text.
+A tab switch needs a deliberate tap (moved less than 14 px, under 0.9 s, at least 400 ms since the last
+switch), so a toddler's swipe or palm slap doesn't flick through games. Switching fully stops the old
+microphone stream and audio context before opening a fresh one (`mic.mjs`, with a generation counter so a
+slow start can never leave two streams). Calibration, voice detection, turn order, session timer,
+settings and the wave are shared. The room is measured once per session, and the session clock keeps
+running across tabs. The last tab is remembered.
+
 ## Rolling sound wave
 A thin (3 px, soft 8 px glow) line rolls across the top of the screen on a canvas. When it's quiet it
 swells gently. It rises smoothly with the same smoothed voice-band level that drives the kitten
@@ -49,6 +74,7 @@ swells gently. It rises smoothly with the same smoothed voice-band level that dr
 while it's Dad's go and eases to teal over about 0.8 s for Liam's turn. With calm motion (the default
 under prefers-reduced-motion) it's slower and half the height. At session end it flattens and dims.
 It ignores touches, so the top-right settings hold still works, and it sits well above the kitten's glow.
+It shows on every tab.
 
 ## Art (Remy)
 `art/` holds Remy's files with her names unchanged (source: `/workspace/sleepy-kitten-art/`):
@@ -90,7 +116,8 @@ node test/turns.test.mjs      # turn order, rewards, hold mode, any mode, sessio
 ```
 `test/signals.mjs` makes the synthetic signals: formant-filtered glottal pulse voices at 95–380 Hz,
 claps, tonal table knocks, door bangs, steady noise and quiet TV babble. Measured onset latency is
-44–55 ms. The app was also run end to end in headless Chrome with a synthetic WAV as the fake microphone.
+44–55 ms. The app was also run end to end in headless Chrome with a synthetic WAV as the fake microphone, on every
+tab, with tab switching (never more than one live mic track).
 
 ## Safety
 No flashing (the glow pulses at 0.4 Hz), no text, numbers or scores for Liam, no sad or failure states,

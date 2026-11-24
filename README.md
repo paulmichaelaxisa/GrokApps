@@ -36,11 +36,11 @@ Phone-first PWA for toddler word practice: picture-book art, bundled Australian-
 
 ### [Sleepy Kitten](./sleepy-kitten/)
 
-Turn-taking voice game for Liam: Dad's voice stirs the sleeping kitten, a glow says "your turn", and Liam's reply wakes it up for a happy wiggle (longer sounds, bigger wiggle). Listens for voices only (claps, bangs and steady TV are ignored), loudness and timing only, all on the phone. Grown-up settings: hold the top-right corner for 2 s. Art by Remy.
+Turn-taking voice game for Liam: Dad's voice stirs the sleeping kitten, a glow says "your turn", and Liam's reply wakes it up for a happy wiggle (longer sounds, bigger wiggle). Listens for voices only (claps, bangs and steady TV are ignored), loudness and timing only, all on the phone. Since 1.1.0 there are four more voice games as picture tabs: Copycat Puppy, Big Balloon, Sound Garden and Sky Balloon. Grown-up settings: hold the top-right corner for 2 s. Art by Remy.
 
 **Firebase hosting:** [sleepy-kitten-paul.web.app](https://sleepy-kitten-paul.web.app)
 
-**Android:** package `com.paulaxisa.sleepykitten` (see [`android/sleepy-kitten/`](./android/sleepy-kitten/)). Current App Tester build: [Sleepy Kitten 1.0.2](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:072a800c20adea717d84c1/releases/582gu8jdnr43g).
+**Android:** package `com.paulaxisa.sleepykitten` (see [`android/sleepy-kitten/`](./android/sleepy-kitten/)). Current App Tester build: [Sleepy Kitten 1.1.0](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:072a800c20adea717d84c1/releases/5fk4t0uf56l18).
 
 ### [Beach Bubble Pop](./beach-bubble-pop/)
 

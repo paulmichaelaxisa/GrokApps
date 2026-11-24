@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <meta name="description" content="Sleepy Kitten: a turn-taking voice game for Liam. Dad's voice stirs the kitten, Liam's voice wakes it up." />
+  <meta name="description" content="Sleepy Kitten: voice games for Liam. A sleepy kitten, a copycat puppy, a big balloon, a sound garden and a sky balloon, all driven by his voice." />
   <meta name="theme-color" content="#FBEFD8" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -16,18 +16,14 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main id="scene" aria-label="Sleepy Kitten">
+  <main id="scene" aria-label="Voice games">
     <canvas id="wave" aria-hidden="true"></canvas>
-    <div id="stage">
-      <div id="ripples" aria-hidden="true"></div>
-      <div id="kitten" aria-hidden="true">
-        <img id="layerA" src="art/kitten_sleeping.png" alt="" draggable="false" />
-        <img id="layerB" alt="" draggable="false" />
-      </div>
-      <div id="glow" aria-hidden="true"></div>
-    </div>
+    <div id="play"></div>
     <div id="dim" aria-hidden="true"></div>
   </main>
+
+  <!-- Icon-only game tabs (no text for Liam). -->
+  <nav id="tabs" role="tablist" aria-label="Games"></nav>
 
   <!-- Invisible parent gate: press and hold the top-right corner for 2 seconds. -->
   <div id="gate" aria-label="Parent settings (press and hold)"></div>
@@ -51,16 +47,16 @@
 
   <dialog id="parent" aria-labelledby="parentTitle">
     <form method="dialog" id="parentForm">
-      <h2 id="parentTitle">Sleepy Kitten: grown-ups</h2>
+      <h2 id="parentTitle">Voice games: grown-ups</h2>
 
       <fieldset>
         <legend>Who's talking</legend>
         <label class="radio"><input type="radio" name="mode" value="turns" />
-          <span><b>Take turns</b> (default). The first voice is Dad's: the kitten stirs and the glow says "your turn". After a pause, the next voice is Liam's and wakes the kitten.</span></label>
+          <span><b>Take turns</b> (default). The first voice is Dad's (the kitten stirs; the glow and the teal wave say "your turn"). After a pause, the next voice is Liam's. Kitten and puppy save their big reward for Liam; balloon, garden and sky respond to both of you.</span></label>
         <label class="radio"><input type="radio" name="mode" value="hold" />
           <span><b>Hold for Dad</b>. Press and hold anywhere on the screen while you talk. Any voice when nobody is holding counts as Liam's.</span></label>
         <label class="radio"><input type="radio" name="mode" value="any" />
-          <span><b>Any voice</b>. Every voice wakes the kitten (for solo play).</span></label>
+          <span><b>Any voice</b>. Every voice counts as Liam's (for solo play).</span></label>
       </fieldset>
 
       <label class="field" id="gapField">Pause before it's the other person's turn: <output id="gapOut"></output>
@@ -85,8 +81,8 @@
         <label class="pill"><input type="radio" name="session" value="300" /> 5 min</label>
       </fieldset>
 
-      <label class="check"><input type="checkbox" id="sounds" /> Soft kitten sound after Liam's turn (quiet, short, never while he's making a sound)</label>
-      <label class="check"><input type="checkbox" id="calm" /> Calm motion (no wiggle or hop)</label>
+      <label class="check"><input type="checkbox" id="sounds" /> Soft chime on a reward (quiet, short, never while he's making a sound)</label>
+      <label class="check"><input type="checkbox" id="calm" /> Calm motion (still pictures, slower wave; only the size, height and growth move)</label>
 
       <div class="field stats">
         <p><b>Today</b> (only on this phone): <span id="statSounds">0</span> sounds from Liam, longest <span id="statLongest">0.0</span> s.</p>
@@ -102,6 +98,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=2"></script>
+  <script type="module" src="app.js?v=3"></script>
 </body>
 </html>
