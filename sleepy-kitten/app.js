@@ -237,8 +237,51 @@ function frame() {
   glowA += (gTarget - glowA) * (1 - Math.exp(-dt / 0.6));
   glowEl.style.opacity = glowA.toFixed(3);
 
+  drawWave(t, dt);
   if (panelOpen) drawMeter();
   requestAnimationFrame(frame);
+}
+
+// ---------- rolling sound wave across the top ----------
+// Thin bright line, driven by the same smoothed voice-band level as the kitten. A gentle idle swell
+// when quiet, taller with louder voices (capped), slower and smaller with calm/reduced motion.
+// Coral while it's Dad's go, easing to teal for Liam's turn. Flattens and fades when the session ends.
+const wave = $("#wave"), wctx = wave.getContext("2d");
+let wAmp = 0, wPhase = 0, wTint = 0, wAlpha = 1, wW = 0, wH = 0, wDpr = 1;
+function sizeWave() {
+  wDpr = Math.min(2, window.devicePixelRatio || 1);
+  wW = wave.clientWidth; wH = wave.clientHeight;
+  wave.width = Math.round(wW * wDpr); wave.height = Math.round(wH * wDpr);
+}
+window.addEventListener("resize", sizeWave); sizeWave();
+const mixRgb = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+const CORAL = [255, 112, 84], TEAL = [18, 178, 170];
+function drawWave(t, dt) {
+  if (!wW) return;
+  const calm = settings.calm, done = document.body.classList.contains("done") || !brain.listening;
+  const idle = calm ? 1.5 : 3;                       // px, gentle swell when quiet
+  const peak = calm ? 10 : 20;                       // px, cap at full voice
+  const target = done ? 0 : idle + (peak - idle) * Math.min(1, lvl * 1.4);
+  wAmp += (target - wAmp) * (1 - Math.exp(-dt / (target > wAmp ? 0.12 : 0.45))); // smooth, no flicker
+  wPhase += dt * (calm ? 0.9 : 1.8) * (1 + Math.min(1, lvl) * 0.6);
+  const liamTurn = brain.state === "wake" || brain.state === "happy" || brain.glow;
+  wTint += ((liamTurn ? 1 : 0) - wTint) * (1 - Math.exp(-dt / 0.8));
+  wAlpha += ((done ? 0.25 : 1) - wAlpha) * (1 - Math.exp(-dt / 1.5));
+  const [r, g, b] = mixRgb(CORAL, TEAL, wTint);
+  const c = wctx, mid = wH * 0.5;
+  c.setTransform(wDpr, 0, 0, wDpr, 0, 0);
+  c.clearRect(0, 0, wW, wH);
+  c.beginPath();
+  for (let x = 0; x <= wW; x += 4) {
+    const u = x / wW;
+    const env = Math.sin(Math.PI * u);              // tapers to the screen edges
+    const y = Math.sin(u * 9.0 - wPhase * 2.1) * 0.6 + Math.sin(u * 15.7 - wPhase * 3.3 + 1.3) * 0.28 + Math.sin(u * 4.1 + wPhase * 1.2) * 0.22;
+    const py = mid + y * wAmp * (0.35 + 0.65 * env);
+    if (x === 0) c.moveTo(x, py); else c.lineTo(x, py);
+  }
+  c.lineCap = "round"; c.lineJoin = "round";
+  c.strokeStyle = `rgba(${r},${g},${b},${(0.28 * wAlpha).toFixed(3)})`; c.lineWidth = 8; c.stroke(); // soft glow
+  c.strokeStyle = `rgba(${r},${g},${b},${(0.95 * wAlpha).toFixed(3)})`; c.lineWidth = 3; c.stroke();
 }
 
 function finishSession() {

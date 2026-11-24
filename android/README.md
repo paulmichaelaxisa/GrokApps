@@ -6,8 +6,8 @@ Capacitor 7 Android projects for the GrokApps that have been wrapped as installa
 | --- | --- | --- | --- |
 | Liam Words | [`liam-words/`](./liam-words/) | `com.paulaxisa.liamwords` | 1.2 (versionCode 3) |
 | Daily Learn | [`daily-learn/`](./daily-learn/) | `com.paulaxisa.dailylearn` | 1.1 (versionCode 2) |
-| Sleepy Kitten | [`sleepy-kitten/`](./sleepy-kitten/) | `com.paulaxisa.sleepykitten` | 1.0.1 (versionCode 2) |
-| Beach Bubble Pop | [`beach-bubble-pop/`](./beach-bubble-pop/) | `com.paulaxisa.beachbubblepop` | 1.0.1 (versionCode 2) |
+| Sleepy Kitten | [`sleepy-kitten/`](./sleepy-kitten/) | `com.paulaxisa.sleepykitten` | 1.0.2 (versionCode 3) |
+| Beach Bubble Pop | [`beach-bubble-pop/`](./beach-bubble-pop/) | `com.paulaxisa.beachbubblepop` | 1.0.2 (versionCode 3) |
 
 Each folder has its own README with build steps. In short:
 

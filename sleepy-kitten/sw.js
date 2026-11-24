@@ -1,10 +1,10 @@
 /* Sleepy Kitten: network-first (fresh when online), cache fallback offline */
-const CACHE = "sleepy-kitten-v2";
+const CACHE = "sleepy-kitten-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
-  "./app.js?v=1",
+  "./app.js?v=2",
   "./turns.mjs?v=1",
   "./detector.mjs",
   "./mic-worklet.js?v=1",

@@ -42,6 +42,14 @@ One-shots switch on a 2.5 s timer, not on the WebP loop flag. Each play uses a f
 animation always starts from frame 0, and seams line up with the poses Remy matched. Within ~45 ms of a
 voice the kitten also gets a small procedural lift and grows a little with loudness (capped).
 
+## Rolling sound wave
+A thin (3 px, soft 8 px glow) line rolls across the top of the screen on a canvas. When it's quiet it
+swells gently. It rises smoothly with the same smoothed voice-band level that drives the kitten
+(capped, 120 ms rise and 450 ms fall, so no flicker), so claps and bangs don't move it. It's coral
+while it's Dad's go and eases to teal over about 0.8 s for Liam's turn. With calm motion (the default
+under prefers-reduced-motion) it's slower and half the height. At session end it flattens and dims.
+It ignores touches, so the top-right settings hold still works, and it sits well above the kitten's glow.
+
 ## Art (Remy)
 `art/` holds Remy's files with her names unchanged (source: `/workspace/sleepy-kitten-art/`):
 `kitten_<state>.webp` (animated, 512×512, 12 fps, opaque cream #FBEFD8) and `kitten_<state>.png`
