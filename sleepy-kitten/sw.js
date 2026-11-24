@@ -1,5 +1,5 @@
 /* Sleepy Kitten: network-first (fresh when online), cache fallback offline */
-const CACHE = "sleepy-kitten-v1";
+const CACHE = "sleepy-kitten-v2";
 const ASSETS = [
   "./",
   "./index.html",

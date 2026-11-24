@@ -40,7 +40,7 @@ Turn-taking voice game for Liam: Dad's voice stirs the sleeping kitten, a glow s
 
 **Firebase hosting:** [sleepy-kitten-paul.web.app](https://sleepy-kitten-paul.web.app)
 
-**Android:** package `com.paulaxisa.sleepykitten` (see [`android/sleepy-kitten/`](./android/sleepy-kitten/)). Current App Tester build: [Sleepy Kitten 1.0](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:072a800c20adea717d84c1/releases/3pfqgj49u6u9o).
+**Android:** package `com.paulaxisa.sleepykitten` (see [`android/sleepy-kitten/`](./android/sleepy-kitten/)). Current App Tester build: [Sleepy Kitten 1.0.1](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:072a800c20adea717d84c1/releases/7speaboca7e2g).
 
 ### [Beach Bubble Pop](./beach-bubble-pop/)
 

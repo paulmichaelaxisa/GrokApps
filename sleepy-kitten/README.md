@@ -48,7 +48,7 @@ voice the kitten also gets a small procedural lift and grows a little with loudn
 (stills) for `sleeping`, `stirring`, `waiting`, `awake_wiggle` and `curling_up`. To update the art,
 drop new files in with the same names and the same 512×512 framing, then bump the cache name in
 `sw.js`. The glow is drawn in the clear space above the waiting head (about x 150–370, y 10–140 of
-512). The square's edges are feathered into the page cream with a CSS mask.
+512). Frames are full-bleed pure #FBEFD8, matching the page, so they need no edge mask.
 
 ## Audio (all on the phone)
 `detector.mjs` runs in an AudioWorklet (`mic-worklet.js`), on 128-sample blocks:
