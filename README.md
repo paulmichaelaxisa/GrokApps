@@ -26,13 +26,21 @@ Mobile-first PWA for unique educational micro-lessons with quizzes. Remembers th
 
 ### [Liam Words](./liam-words/)
 
-Phone-first PWA for toddler word practice: picture-book art, bundled Australian-English audio, and in-app Auslan Signbank videos (CC BY-NC-ND 4.0, auslan.org.au). 22 words.
+Phone-first PWA for toddler word practice: picture-book art, bundled Australian-English audio, and in-app Auslan Signbank videos (CC BY-NC-ND 4.0, auslan.org.au). 32 words.
 
 **Preview:** [raw.githack](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/liam-words/index.html)
 
 **Firebase hosting:** [liam-words-paul.web.app](https://liam-words-paul.web.app)
 
 **Android:** package `com.paulaxisa.liamwords` (see [`android/liam-words/`](./android/liam-words/)). Current App Tester build: [Liam Words 1.5](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:827b9c77532a2b267d84c1/releases/0bl2ecqn2ij1g).
+
+### [Sleepy Kitten](./sleepy-kitten/)
+
+Turn-taking voice game for Liam: Dad's voice stirs the sleeping kitten, a glow says "your turn", and Liam's reply wakes it up for a happy wiggle (longer sounds, bigger wiggle). Listens for voices only (claps, bangs and steady TV are ignored), loudness and timing only, all on the phone. Grown-up settings: hold the top-right corner for 2 s. Art by Remy.
+
+**Firebase hosting:** [sleepy-kitten-paul.web.app](https://sleepy-kitten-paul.web.app)
+
+**Android:** package `com.paulaxisa.sleepykitten` (see [`android/sleepy-kitten/`](./android/sleepy-kitten/)). Current App Tester build: [Sleepy Kitten 1.0](https://appdistribution.firebase.google.com/testerapps/1:932049614164:android:072a800c20adea717d84c1/releases/3pfqgj49u6u9o).
 
 ### [Beach Bubble Pop](./beach-bubble-pop/)
 

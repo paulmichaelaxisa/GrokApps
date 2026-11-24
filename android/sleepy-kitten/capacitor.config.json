@@ -1,0 +1,6 @@
+{
+  "appId": "com.paulaxisa.sleepykitten",
+  "appName": "Sleepy Kitten",
+  "webDir": "www",
+  "android": { "backgroundColor": "#FBEFD8" }
+}

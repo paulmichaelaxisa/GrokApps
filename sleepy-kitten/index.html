@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="description" content="Sleepy Kitten: a turn-taking voice game for Liam. Dad's voice stirs the kitten, Liam's voice wakes it up." />
+  <meta name="theme-color" content="#FBEFD8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Sleepy Kitten" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Sleepy Kitten</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main id="scene" aria-label="Sleepy Kitten">
+    <div id="stage">
+      <div id="ripples" aria-hidden="true"></div>
+      <div id="kitten" aria-hidden="true">
+        <img id="layerA" src="art/kitten_sleeping.png" alt="" draggable="false" />
+        <img id="layerB" alt="" draggable="false" />
+      </div>
+      <div id="glow" aria-hidden="true"></div>
+    </div>
+    <div id="dim" aria-hidden="true"></div>
+  </main>
+
+  <!-- Invisible parent gate: press and hold the top-right corner for 2 seconds. -->
+  <div id="gate" aria-label="Parent settings (press and hold)"></div>
+
+  <!-- Shown only if the browser needs one tap before it can listen (first run on the web). -->
+  <button type="button" id="tapToStart" hidden aria-label="Tap once to start listening">
+    <svg viewBox="0 0 64 64" width="96" height="96" aria-hidden="true">
+      <circle cx="32" cy="32" r="30" fill="#F6DDB0" />
+      <rect x="25" y="13" width="14" height="24" rx="7" fill="#9A8AB8" />
+      <path d="M19 31a13 13 0 0 0 26 0" fill="none" stroke="#9A8AB8" stroke-width="4" stroke-linecap="round" />
+      <path d="M32 44v7" stroke="#9A8AB8" stroke-width="4" stroke-linecap="round" />
+    </svg>
+    <span class="parent-hint">Grown-up: tap once to let the kitten listen</span>
+  </button>
+
+  <div id="micProblem" class="parent-sheet" hidden role="alertdialog" aria-labelledby="micProblemTitle">
+    <h2 id="micProblemTitle">The kitten can't hear yet</h2>
+    <p id="micProblemText">Allow the microphone for this app, then tap Try again.</p>
+    <button type="button" id="micRetry" class="btn primary">Try again</button>
+  </div>
+
+  <dialog id="parent" aria-labelledby="parentTitle">
+    <form method="dialog" id="parentForm">
+      <h2 id="parentTitle">Sleepy Kitten: grown-ups</h2>
+
+      <fieldset>
+        <legend>Who's talking</legend>
+        <label class="radio"><input type="radio" name="mode" value="turns" />
+          <span><b>Take turns</b> (default). The first voice is Dad's: the kitten stirs and the glow says "your turn". After a pause, the next voice is Liam's and wakes the kitten.</span></label>
+        <label class="radio"><input type="radio" name="mode" value="hold" />
+          <span><b>Hold for Dad</b>. Press and hold anywhere on the screen while you talk. Any voice when nobody is holding counts as Liam's.</span></label>
+        <label class="radio"><input type="radio" name="mode" value="any" />
+          <span><b>Any voice</b>. Every voice wakes the kitten (for solo play).</span></label>
+      </fieldset>
+
+      <label class="field" id="gapField">Pause before it's the other person's turn: <output id="gapOut"></output>
+        <input type="range" id="turnGap" min="0.6" max="2.0" step="0.1" />
+      </label>
+
+      <label class="field">Sensitivity: <output id="sensOut"></output>
+        <input type="range" id="sens" min="-8" max="8" step="1" />
+        <span class="ends"><span>Less (noisy room)</span><span>More (quiet voice)</span></span>
+      </label>
+
+      <div class="field">
+        <div class="meter-row"><span>Mic</span><div class="meter"><div id="meterBar"></div><div id="meterThr"></div></div><span id="voiceDot" title="voice heard"></span></div>
+        <p class="small" id="floorInfo">Room noise: measuring…</p>
+        <button type="button" id="recal" class="btn">Measure room noise again (stay quiet 3 s)</button>
+      </div>
+
+      <fieldset>
+        <legend>Session length</legend>
+        <label class="pill"><input type="radio" name="session" value="180" /> 3 min</label>
+        <label class="pill"><input type="radio" name="session" value="240" /> 4 min</label>
+        <label class="pill"><input type="radio" name="session" value="300" /> 5 min</label>
+      </fieldset>
+
+      <label class="check"><input type="checkbox" id="sounds" /> Soft kitten sound after Liam's turn (quiet, short, never while he's making a sound)</label>
+      <label class="check"><input type="checkbox" id="calm" /> Calm motion (no wiggle or hop)</label>
+
+      <div class="field stats">
+        <p><b>Today</b> (only on this phone): <span id="statSounds">0</span> sounds from Liam, longest <span id="statLongest">0.0</span> s.</p>
+        <button type="button" id="clearStats" class="btn small-btn">Clear</button>
+      </div>
+
+      <p class="small">Everything stays on this phone. Nothing is recorded, saved or uploaded. Use with Liam's processors on, TV off, and you beside him. His therapist sets his speech goals; this is just play.</p>
+
+      <div class="actions">
+        <button type="button" id="newSession" class="btn">New session</button>
+        <button value="close" class="btn primary">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js?v=1"></script>
+</body>
+</html>
