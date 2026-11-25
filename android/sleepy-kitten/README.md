@@ -3,7 +3,7 @@
 Capacitor 7 wrapper around the [Sleepy Kitten](../../sleepy-kitten/) web app.
 
 - **Application ID:** `com.paulaxisa.sleepykitten`
-- **Version in this tree:** 1.1.0 (versionCode 4)
+- **Version in this tree:** 1.1.1 (versionCode 5)
 - **Permissions:** `RECORD_AUDIO` + `MODIFY_AUDIO_SETTINGS`. Capacitor's `BridgeWebChromeClient` shows the
   runtime microphone prompt the first time the page calls `getUserMedia`. `MainActivity` turns off
   `mediaPlaybackRequiresUserGesture` so the kitten listens without a start tap, and keeps the screen on.

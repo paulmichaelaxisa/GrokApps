@@ -50,10 +50,22 @@ voice the kitten also gets a small procedural lift and grows a little with loudn
 | Tab | What a voice does | Session end |
 |---|---|---|
 | **Sleepy Kitten** | As above (turn order, glow, wiggle for Liam). | Curls up and sleeps. |
-| **Copycat Puppy** | Talks along while there's a voice (`puppy_talking_soft` for quiet, `puppy_talking` for loud, 130 ms crossfade with hysteresis) and muzzle ripples follow the loudness (40 ms rise). Back to `puppy_waiting` 400 ms after the voice stops. A sound from Liam of 2 s or more gets one `puppy_happy_wag`. | `puppy_lying_down`, then `puppy_sleeping`; `puppy_waking` on New session. |
+| **Copycat Puppy** | Sleeps through the 3 s room check, then `puppy_waking` and `puppy_waiting`. Talks along while there's a voice (`puppy_talking_soft` for quiet, `puppy_talking` for loud, 130 ms crossfade with hysteresis) and muzzle ripples follow the loudness (40 ms rise). Back to `puppy_waiting` 400 ms after the voice stops. A sound from Liam of 2 s or more gets one `puppy_happy_wag`. After **10 s of quiet** it naps (`puppy_lying_down`, then `puppy_sleeping` looping; its own timer, the kitten settles after 15 s), and the next voice plays `puppy_waking`, then waiting. | `puppy_lying_down`, then `puppy_sleeping`; on New session it sleeps through the room check, then `puppy_waking`. |
 | **Big Balloon** | Live layers (hand, string, balloon). Any voice blows it up (about 3 s of voice to fill, louder is a bit faster) with soft glow rings. A pause lets out 10% over 4 s after 1.5 s. When it's full, `balloon_pop`, then `balloon_new_balloon`, then back to live. Gentle 3 s bob. | Shrinks, `balloon_drift_away`, then `balloon_resting`. |
 | **Sound Garden** | Built live from soil, the growth sheets, bee, sparkles and butterflies (not `garden_full_garden`). After 200 ms of voice a seed lands in the next of 8 spots, and voice grows it (about 1.5 s to bloom, height 0.8–1.1 from loudness). Flowers never shrink. On a bloom the bee visits and sparkles twinkle. After 8 flowers the full garden sways with 2 butterflies for 9 s, then folds back and starts again. | Flowers fold, the bee rests, then `garden_resting`. |
-| **Sky Balloon** | The basket rises with voice time (about 2.5 s of voice to reach the clouds, louder 0.7–1.3× faster), hangs 0.8 s, then floats down slowly. The burner glow follows loudness. One second at the top plays `sky_cloud_reward` and the sun glows. `hills_wide` on wide screens. | Drifts down, then `sky_resting`. |
+| **Sky Balloon** | The basket rises with voice time (**Sky climb time** in grown-up settings: 1.6 s of voice by default, 0.8–3.0 s; louder is 0.7–1.3× faster), hangs 1.1 s so a breath between sounds keeps its height, then floats down slowly. The burner glow follows loudness. Half a second at the top plays `sky_cloud_reward` and the sun glows. `hills_wide` on wide screens, mirrored past its ends on very wide phones. | Drifts down, then `sky_resting`. |
+
+If a tab is opened after the session has ended, it plays its gentle sleeping/resting loop (stills only
+with calm motion). In Sound Garden the planted seed is frame 0 of each growth sheet, which is identical
+to `seed.png`, so the separate seed file was dropped.
+
+**Wide screens (Sky Balloon):** Remy's `sky_cloud_reward` and `sky_resting` are opaque squares with
+`hills.png` flattened on cream, and that art fades out over the outer ~42 px of each side. Next to
+`hills_wide` that showed as cream bands. A second canvas above the clip repaints those side strips with
+an exact unmix (`W + a·(H − cream)` at opacity `(1 − a)·a_W`, where a and H are hills.png's alpha and
+colour, and W and a_W are hills_wide's), so the clip's hills sit on hills_wide exactly like the live scene.
+A bird or balloon crossing the bottom of a side strip would be slightly tinted there. Edge-to-edge
+(no side fade) or alpha versions of those two clips would remove the need for this.
 
 No game uses pitch. Sky height is voice time plus loudness, the balloon bobs, the garden's flower
 types come from the fixed slots, and the puppy doesn't tilt its head. Kitten and Puppy save the big
@@ -105,9 +117,13 @@ drop new files in with the same names and the same 512×512 framing, then bump t
 
 ## Grown-up settings
 Press and hold the **top-right corner for 2 seconds** (invisible, no text shown to Liam): mode, turn gap,
-sensitivity with a live mic meter, re-measure the room, session length 3/4/5 min (default 4), the
-optional sound, calm motion (no hop or ripples), today's count and longest sound, and New session.
-While settings are open the kitten ignores voices.
+sensitivity with a live mic meter, Sky climb time (seconds of voice to lift the Sky Balloon to the
+clouds), re-measure the room, session length 3/4/5 min (default 4), the optional sound, calm motion (no
+hop or ripples, and the games' clips show as stills), today's count and longest sound, and New session.
+While settings are open the games ignore voices. The tab bar doesn't reach the top-right hold zone.
+
+`puppy_happy_wag.webp` is re-timed by `tools/retime_puppy_wag.py` from Remy's frames (108 ms per frame,
+3.9 s, 1.3× slower) to tone it down.
 
 ## Tests (headless)
 ```bash

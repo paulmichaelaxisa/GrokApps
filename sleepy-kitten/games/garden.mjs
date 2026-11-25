@@ -2,6 +2,7 @@
 // of voice to bloom), and it never shrinks back if he stops. Loudness sets its size (0.8-1.1).
 // Bloom: the bee lands on it and soft sparkles fade in and out. Eight blooms: the full garden sways
 // with butterflies (drawn live from the layers), then folds back for a fresh bed.
+// The planted seed is frame 0 of each growth sheet (identical to seed.png), so seed.png isn't drawn separately.
 import { ClipPlayer, loadImages, ease } from "../clips.mjs?v=1";
 import { SceneCanvas } from "./canvas.mjs?v=1";
 
@@ -23,7 +24,7 @@ export default class GardenGame {
     const host = document.createElement("div"); host.className = "clip-host"; stage.appendChild(host);
     this.player = new ClipPlayer(host, (n, ext) => `art/garden/garden_${n}.${ext}`);
     this.im = await loadImages({
-      soil: "art/garden/soil@2x.png", bee: "art/garden/bee@2x.png", fly: "art/garden/butterfly@2x.png", sparkle: "art/garden/sparkle.png", seed: "art/garden/seed.png",
+      soil: "art/garden/soil@2x.png", bee: "art/garden/bee@2x.png", fly: "art/garden/butterfly@2x.png", sparkle: "art/garden/sparkle.png",
       daisy: "art/garden/growth_daisy_sheet.png", tulip: "art/garden/growth_tulip_sheet.png", lavender: "art/garden/growth_lavender_sheet.png", poppy: "art/garden/growth_poppy_sheet.png",
     });
     await this.player.preload(["resting"]);
@@ -31,7 +32,7 @@ export default class GardenGame {
     this.bee = { x: BEE_HOME[0], y: BEE_HOME[1], tx: null, ty: null, until: 0, tilt: 0 };
     this.over = over; this.restDone = over; this.ending = false;
     this.mode = over ? "resting" : "live"; // live | full | fold | resting
-    if (over) { this.player.play("resting", 0, { still: true }); this.sc.visible = false; } else this.player.setVisible(false);
+    if (over) { this.player.play("resting", 0, { still: this.app.settings.calm }); this.sc.visible = false; } else this.player.setVisible(false);
   }
   reset() { this.flowers = SLOTS.map(() => null); this.next = 0; this.cur = null; this.sparkles = []; this.speakStart = null; this.lastEnd = -1e9; this.planted = false; this.flies = []; }
   unmount() { this.player.destroy(); this.sc.destroy(); this.stage.innerHTML = ""; }

@@ -21,7 +21,7 @@ export default class BalloonGame {
     this.size = IDLE; this.ds = IDLE; this.ring = 0; this.speaking = false; this.lastEnd = -1e9; this.bob0 = this.app.now();
     this.over = over; this.restDone = over; this.ending = false;
     this.mode = over ? "resting" : "live"; // live | pop | new | drift | resting
-    if (over) { this.player.play("resting", 0, { still: true }); this.sc.visible = false; }
+    if (over) { this.player.play("resting", 0, { still: this.app.settings.calm }); this.sc.visible = false; }
     else this.player.setVisible(false);
   }
   unmount() { this.player.destroy(); this.sc.destroy(); this.stage.innerHTML = ""; }

@@ -3,18 +3,18 @@
 // and never stored or sent anywhere.
 import { TurnTracker } from "./turns.mjs?v=2";
 import { Mic } from "./mic.mjs?v=1";
-import KittenGame from "./games/kitten.mjs?v=1";
-import PuppyGame from "./games/puppy.mjs?v=1";
-import BalloonGame from "./games/balloon.mjs?v=1";
-import GardenGame from "./games/garden.mjs?v=1";
-import SkyGame from "./games/sky.mjs?v=1";
+import KittenGame from "./games/kitten.mjs?v=2";
+import PuppyGame from "./games/puppy.mjs?v=2";
+import BalloonGame from "./games/balloon.mjs?v=2";
+import GardenGame from "./games/garden.mjs?v=2";
+import SkyGame from "./games/sky.mjs?v=2";
 
 const GAMES = [KittenGame, PuppyGame, BalloonGame, GardenGame, SkyGame];
 const $ = (s) => document.querySelector(s);
 const SETTINGS_KEY = "sleepy-kitten-settings", STATS_KEY = "sleepy-kitten-stats";
 const reducedMotionPref = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const settings = Object.assign(
-  { mode: "turns", sensitivity: 0, turnGap: 1.0, sessionSec: 240, sounds: false, calm: reducedMotionPref, floorDb: null, tab: "kitten" },
+  { mode: "turns", sensitivity: 0, turnGap: 1.0, sessionSec: 240, skyClimbSec: 1.6, sounds: false, calm: reducedMotionPref, floorDb: null, tab: "kitten" },
   JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")
 );
 const save = () => localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -26,6 +26,7 @@ let game = null, GameClass = null, openToken = 0, micReady = false, lastHop = nu
 
 const api = {
   settings, turns, now,
+  calibrated: () => session.calibrated,
   stat: (dur) => recordStat(dur),
   chime: () => maybeChime(),
 };
@@ -55,6 +56,7 @@ function onHop(r) {
     session.calibrated = true; micReady = true;
     if (session.start == null) session.start = now();
     updateFloorInfo();
+    game?.onCalibrated?.(now());
   }
   if (!micReady || panelOpen || !game || session.over && game.done) return;
   const t = now();
@@ -207,7 +209,7 @@ function openPanel() {
   panelOpen = true;
   dlg.querySelectorAll('input[name="mode"]').forEach((i) => (i.checked = i.value === settings.mode));
   dlg.querySelectorAll('input[name="session"]').forEach((i) => (i.checked = +i.value === settings.sessionSec));
-  $("#sens").value = settings.sensitivity; $("#turnGap").value = settings.turnGap;
+  $("#sens").value = settings.sensitivity; $("#turnGap").value = settings.turnGap; $("#skyClimb").value = settings.skyClimbSec;
   $("#sounds").checked = settings.sounds; $("#calm").checked = settings.calm;
   refreshLabels(); updateFloorInfo(); showStats();
   dlg.showModal();
@@ -217,6 +219,7 @@ function refreshLabels() {
   const s = +$("#sens").value;
   $("#sensOut").textContent = s === 0 ? "normal" : s > 0 ? `+${s}` : `${s}`;
   $("#gapOut").textContent = `${(+$("#turnGap").value).toFixed(1)} s`;
+  $("#skyOut").textContent = `${(+$("#skyClimb").value).toFixed(1)} s of voice`;
   $("#gapField").style.display = settings.mode === "turns" ? "" : "none";
 }
 dlg.addEventListener("input", (e) => {
@@ -225,6 +228,7 @@ dlg.addEventListener("input", (e) => {
   if (el.name === "session") settings.sessionSec = +el.value;
   if (el.id === "sens") { settings.sensitivity = +el.value; mic.post({ type: "sens", db: settings.sensitivity }); }
   if (el.id === "turnGap") { settings.turnGap = +el.value; turns.set("turnGap", +el.value); game?.setOption?.("turnGap", +el.value); }
+  if (el.id === "skyClimb") settings.skyClimbSec = +el.value;
   if (el.id === "sounds") settings.sounds = el.checked;
   if (el.id === "calm") settings.calm = el.checked;
   save(); refreshLabels();

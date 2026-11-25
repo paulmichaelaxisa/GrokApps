@@ -21,7 +21,7 @@ export default class KittenGame {
     this.brain.start(now);
     this.over = over; this.restDone = over; this.kick = 0; this.glowA = 0; this.wiggleExitAt = null;
     await this.player.preload(Object.keys(CLIPS));
-    this.player.play("sleeping", 0, { still: over || s.calm });
+    this.player.play("sleeping", 0, { still: s.calm }); // after the session too: the gentle sleeping loop
   }
   unmount() { this.player.destroy(); this.stage.innerHTML = ""; }
 
@@ -72,7 +72,7 @@ export default class KittenGame {
   frame(t, dt, lvl) {
     const prev = this.brain.state;
     this.brain.tick(t);
-    if (prev !== "done" && this.brain.state === "done") { this.over = true; this.restDone = true; this.player.play("sleeping", 1.5, { still: true }); }
+    if (prev !== "done" && this.brain.state === "done") { this.over = true; this.restDone = true; this.player.play("sleeping", 1.5, { still: this.app.settings.calm }); }
     this.direct(t);
     this.player.update(dt);
     this.kick *= Math.exp(-dt / 0.35);
