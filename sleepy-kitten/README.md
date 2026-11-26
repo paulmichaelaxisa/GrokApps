@@ -113,13 +113,35 @@ drop new files in with the same names and the same 512×512 framing, then bump t
 - Calibration: 3 s at the start of every session (30th percentile of levels), and again from settings.
 - Optional app sound (off by default): a quiet 0.45 s two-note chime, only after Liam stops. The mic is
   ignored while it plays plus 300 ms.
-- Nothing is recorded, stored or uploaded. Settings and today's parent-only stats stay in `localStorage`.
+- Nothing is recorded unless a grown-up turns on **Save Liam's sounds** (below). Nothing is ever uploaded
+  by the app. Settings and today's parent-only stats stay in `localStorage`.
+
+## Liam's sounds (optional clips, 1.2.0)
+Off by default. When **Save Liam's sounds** is on in grown-up settings:
+- The worklet also keeps a rolling 20 s, 16 kHz mono copy of the mic (`recring.mjs`: 2× low-pass at
+  7 kHz, then linear resampling; about 0.05 ms per 128-sample block, so the < 100 ms response is untouched).
+  When it's off, nothing is buffered.
+- When one of **Liam's** sounds ends (any tab; in Take turns only his turns, in Hold for Dad any voice
+  while nobody is holding, in Any voice every voice), the app asks for that stretch with 300 ms before
+  and after, capped at 15 s and at least 0.4 s. Sounds the detector flags as background (a sound that
+  never stops for 6 s) are skipped. While settings are open, or after the session ends, nothing is kept.
+- Each clip is a 16-bit 16 kHz mono WAV (about 32 KB a second, gently peak-normalised, max ×8), saved in
+  IndexedDB (`sleepy-kitten-clips`) as `liam_YYYY-MM-DD_HH-MM-SS_<tab>.wav` (local time of the start;
+  `_2` if two start in the same second). `liamclips.mjs` stores, lists, zips and shares them.
+- Settings list: count, total size, today's count, each clip (date, time, game, length) with Play and
+  Delete, **Delete all** (with confirm), **Share today's** and **Share all**.
+- Sharing: in the Android app every clip is written to the app cache and the native share sheet opens
+  with all of them as separate .wav files (pick OneDrive, then the folder). In a browser, the Web Share
+  API takes up to 10 files at a time, so bigger sets go 10 per tap ("Shared 1–10 of 23. Tap again for the
+  next 10."). With no file sharing at all, a .zip downloads instead.
+- Liam sees nothing different. Transcription happens later off the phone (no keys in the app).
+
 
 ## Grown-up settings
-Press and hold the **top-right corner for 2 seconds** (invisible, no text shown to Liam): mode, turn gap,
+Press and hold the **top-right corner for 2 seconds**, where a small faint gear (24 px, 35% opacity, still) marks the spot. A tap or a short press does nothing. Works with touch (pointer capture plus touch-event backup for WebViews), pen and mouse; the finger may wobble up to 40 px. Inside: mode, turn gap,
 sensitivity with a live mic meter, Sky climb time (seconds of voice to lift the Sky Balloon to the
 clouds), re-measure the room, session length 3/4/5 min (default 4), the optional sound, calm motion (no
-hop or ripples, and the games' clips show as stills), today's count and longest sound, and New session.
+hop or ripples, and the games' clips show as stills), today's count and longest sound, Liam's sounds, and New session.
 While settings are open the games ignore voices. The tab bar doesn't reach the top-right hold zone.
 
 `puppy_happy_wag.webp` is re-timed by `tools/retime_puppy_wag.py` from Remy's frames (108 ms per frame,

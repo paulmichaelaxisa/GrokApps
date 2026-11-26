@@ -1,15 +1,17 @@
 /* Sleepy Kitten + voice games: network-first (fresh when online), cache fallback offline */
-const CACHE = "sleepy-kitten-v5";
+const CACHE = "sleepy-kitten-v6";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
-  "./app.js?v=4",
+  "./app.js?v=5",
   "./turns.mjs?v=2",
   "./clips.mjs?v=1",
-  "./mic.mjs?v=1",
+  "./mic.mjs?v=2",
+  "./recring.mjs?v=1",
+  "./liamclips.mjs?v=1",
   "./detector.mjs",
-  "./mic-worklet.js?v=1",
+  "./mic-worklet.js?v=2",
   "./games/canvas.mjs?v=1",
   "./games/kitten.mjs?v=2",
   "./games/puppy.mjs?v=2",

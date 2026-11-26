@@ -52,7 +52,11 @@ body.done #dim { opacity: .18; }
 #wave { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); width: 100%; height: 56px;
   pointer-events: none; z-index: 2; }
 
-#gate { position: fixed; top: 0; right: 0; width: 96px; height: 96px; z-index: 5; }
+#gate { position: fixed; top: 0; right: 0; width: 96px; height: 96px; z-index: 5; touch-action: none;
+  -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+/* Faint, still gear marking the hold spot (a tap does nothing; it needs a 2 s hold). */
+#gear { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(14px + env(safe-area-inset-right, 0px));
+  width: 24px; height: 24px; color: var(--ink); opacity: .35; pointer-events: none; }
 
 #tapToStart { position: fixed; inset: 0; z-index: 6; border: 0; background: rgba(251, 239, 216, .82);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--ink); font: inherit; }
@@ -93,3 +97,16 @@ legend { font-weight: 600; margin-bottom: 6px; }
 .small-btn { padding: 6px 10px; font-size: 14px; }
 .actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
 .scene-canvas.edge-fill { pointer-events: none; }
+
+/* Liam's sounds (grown-up settings) */
+.rec h3 { margin: 4px 0 8px; font-size: 17px; }
+.rec-summary { margin: 4px 0 8px; font-size: 15px; }
+.rec-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.btn.danger { background: #f2d4cc; }
+.btn:disabled { opacity: .45; }
+.rec-list { list-style: none; margin: 6px 0; padding: 0; max-height: 240px; overflow: auto; border-radius: 10px; background: #f8ead0; }
+.rec-list li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #efdcb8; font-size: 13px; }
+.rec-list li:last-child { border-bottom: 0; }
+.rec-list .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rec-list .meta { opacity: .7; white-space: nowrap; }
+.rec-list .btn { padding: 4px 9px; font-size: 13px; border-radius: 9px; }

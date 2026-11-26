@@ -26,7 +26,9 @@
   <nav id="tabs" role="tablist" aria-label="Games"></nav>
 
   <!-- Invisible parent gate: press and hold the top-right corner for 2 seconds. -->
-  <div id="gate" aria-label="Parent settings (press and hold)"></div>
+  <div id="gate" aria-label="Parent settings (press and hold)">
+    <svg id="gear" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+  </div>
 
   <!-- Shown only if the browser needs one tap before it can listen (first run on the web). -->
   <button type="button" id="tapToStart" hidden aria-label="Tap once to start listening">
@@ -89,12 +91,26 @@
       <label class="check"><input type="checkbox" id="sounds" /> Soft chime on a reward (quiet, short, never while he's making a sound)</label>
       <label class="check"><input type="checkbox" id="calm" /> Calm motion (still pictures, slower wave; only the size, height and growth move)</label>
 
+      <section class="field rec" aria-labelledby="recTitle">
+        <h3 id="recTitle">Liam's sounds</h3>
+        <label class="check"><input type="checkbox" id="saveSounds" /> <span><b>Save Liam's sounds</b> on this phone, as short clips (only his turns: Dad's turns, and long background sound such as TV or music, are skipped). Off by default. Liam sees no change.</span></label>
+        <div class="rec-summary"><span id="recCount">No clips saved yet.</span></div>
+        <div class="rec-buttons">
+          <button type="button" id="shareToday" class="btn primary small-btn">Share today's</button>
+          <button type="button" id="shareAll" class="btn small-btn">Share all</button>
+          <button type="button" id="deleteAll" class="btn small-btn danger">Delete all</button>
+        </div>
+        <p class="small" id="recStatus" aria-live="polite"></p>
+        <ul id="recList" class="rec-list"></ul>
+        <p class="small">Share opens the phone's share sheet: choose OneDrive, then the Liam folder. Each clip is a .wav named liam_date_time_game.wav. Clips stay on this phone until you share or delete them.</p>
+      </section>
+
       <div class="field stats">
         <p><b>Today</b> (only on this phone): <span id="statSounds">0</span> sounds from Liam, longest <span id="statLongest">0.0</span> s.</p>
         <button type="button" id="clearStats" class="btn small-btn">Clear</button>
       </div>
 
-      <p class="small">Everything stays on this phone. Nothing is recorded, saved or uploaded. Use with Liam's processors on, TV off, and you beside him. His therapist sets his speech goals; this is just play.</p>
+      <p class="small"><span id="privacyNote">Everything stays on this phone. Nothing is recorded, saved or uploaded.</span> Use with Liam's processors on, TV off, and you beside him. His therapist sets his speech goals; this is just play.</p>
 
       <div class="actions">
         <button type="button" id="newSession" class="btn">New session</button>
@@ -103,6 +119,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="app.js?v=4"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

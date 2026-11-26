@@ -3,10 +3,13 @@
 Capacitor 7 wrapper around the [Sleepy Kitten](../../sleepy-kitten/) web app.
 
 - **Application ID:** `com.paulaxisa.sleepykitten`
-- **Version in this tree:** 1.1.1 (versionCode 5)
+- **Version in this tree:** 1.2.0 (versionCode 6)
 - **Permissions:** `RECORD_AUDIO` + `MODIFY_AUDIO_SETTINGS`. Capacitor's `BridgeWebChromeClient` shows the
   runtime microphone prompt the first time the page calls `getUserMedia`. `MainActivity` turns off
   `mediaPlaybackRequiresUserGesture` so the kitten listens without a start tap, and keeps the screen on.
+- **Plugins:** `@capacitor/filesystem` + `@capacitor/share`. Android's WebView has no Web Share API, so
+  "Share" for Liam's sound clips writes each .wav to the app cache (`cache/liam-sounds/`) and opens the native
+  share sheet with all of them (`ACTION_SEND_MULTIPLE` via the template's FileProvider `cache-path`).
 - **Needs:** JDK 21, Android SDK, Node.js, and the existing release keystore (alias `sleepykitten`)
 
 ## Build a release APK

@@ -1,8 +1,10 @@
 // Sleepy Kitten voice games: one shell (mic, calibration, turn-taking, session timer, grown-up
-// settings, rolling wave, tabs) and five games. Everything runs on the phone; audio is analysed live
-// and never stored or sent anywhere.
+// settings, rolling wave, tabs) and five games. Everything runs on the phone; audio is analysed live.
+// Only if a grown-up turns on "Save Liam's sounds" are his turns kept, as short clips on this phone
+// (IndexedDB). Nothing is ever uploaded; a grown-up shares them from settings.
 import { TurnTracker } from "./turns.mjs?v=2";
-import { Mic } from "./mic.mjs?v=1";
+import { Mic } from "./mic.mjs?v=2";
+import * as Clips from "./liamclips.mjs?v=1";
 import KittenGame from "./games/kitten.mjs?v=2";
 import PuppyGame from "./games/puppy.mjs?v=2";
 import BalloonGame from "./games/balloon.mjs?v=2";
@@ -14,7 +16,7 @@ const $ = (s) => document.querySelector(s);
 const SETTINGS_KEY = "sleepy-kitten-settings", STATS_KEY = "sleepy-kitten-stats";
 const reducedMotionPref = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const settings = Object.assign(
-  { mode: "turns", sensitivity: 0, turnGap: 1.0, sessionSec: 240, skyClimbSec: 1.6, sounds: false, calm: reducedMotionPref, floorDb: null, tab: "kitten" },
+  { mode: "turns", sensitivity: 0, turnGap: 1.0, sessionSec: 240, skyClimbSec: 1.6, sounds: false, calm: reducedMotionPref, floorDb: null, tab: "kitten", saveSounds: false },
   JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")
 );
 const save = () => localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -37,6 +39,7 @@ const mic = new Mic({
   onProblem: (text) => { $("#micProblemText").textContent = text; $("#micProblem").hidden = false; },
   onNeedTap: () => { $("#tapToStart").hidden = false; },
   onRunning: () => { $("#tapToStart").hidden = true; keepAwake(); },
+  onClip: (c) => onClip(c),
 });
 const debug = (window.__kitten = { settings, session, turns, mic, events: [], get game() { return game; }, get gameId() { return GameClass && GameClass.id; }, open: (id) => openGame(id) });
 
@@ -44,7 +47,7 @@ async function startMic() {
   $("#micProblem").hidden = true;
   micReady = session.calibrated;                 // calibrate once per session, reuse across tabs
   lastHop = null;
-  await mic.start({ sens: settings.sensitivity, floorDb: settings.floorDb, calibrate: !session.calibrated });
+  await mic.start({ sens: settings.sensitivity, floorDb: settings.floorDb, calibrate: !session.calibrated, rec: settings.saveSounds });
 }
 $("#tapToStart").addEventListener("pointerdown", async (e) => { e.preventDefault(); await mic.ensureRunning(); });
 $("#micRetry").addEventListener("click", () => startMic());
@@ -68,9 +71,29 @@ function onHop(r) {
     } else if (ev.type === "end") {
       const who = game.ownTurns ? game.onEnd(t, ev.duration) : (() => { const w = turns.onEnd(t); game.onEnd(t, ev.duration, w); return w; })();
       debug.events.push({ t, game: GameClass.id, type: "end", who, dur: ev.duration });
+      if (who === "liam") requestClip(ev, r.t);
     }
   }
 }
+// ---------- Liam's sounds (optional clips, off by default) ----------
+// The worklet keeps a rolling 16 kHz copy of the mic only while this is on. When one of Liam's turns
+// ends, ask it for that stretch (300 ms before and after), then save it as a .wav in IndexedDB.
+const PRE = 0.3, POST = 0.3, MAX_CLIP = 15, MIN_VOICE = 0.1;
+const clipReqs = new Map(); let clipSeq = 0;
+debug.clips = { saved: [], reqs: clipReqs };
+function requestClip(ev, hopT) {
+  if (!settings.saveSounds || ev.background || !(ev.duration >= MIN_VOICE)) return;
+  const end = ev.t + POST, start = Math.max(ev.start - PRE, end - MAX_CLIP), id = ++clipSeq;
+  clipReqs.set(id, { tab: GameClass.id, startedAt: Date.now() - (hopT - start) * 1000 });
+  mic.post({ type: "clip", id, start, end });
+}
+async function onClip({ id, pcm }) {
+  const meta = clipReqs.get(id); clipReqs.delete(id);
+  if (!meta || !settings.saveSounds || pcm.length < 16000 * 0.4) return;
+  try { const rec = await Clips.saveClip(pcm, meta); debug.clips.saved.push(rec.name); if (panelOpen) showClips(); }
+  catch (e) { console.error("clip save failed", e); }
+}
+
 KittenGame.prototype.ownTurns = true; // the kitten's brain does its own turn-taking (same rules)
 
 // ---------- optional app sound (off by default) ----------
@@ -197,10 +220,22 @@ function drawWave(t, dt) {
 }
 
 // ---------- parent gate: press and hold the top-right corner for 2 s ----------
-let gateTimer = null;
+// Works with touch (Android WebView), pen and mouse. The finger may wobble a little; a tap does nothing.
+// Pointer events are captured so a touch never "leaves" the gate early; touch events back them up on
+// WebViews that cancel the pointer stream for a long press.
+let gateTimer = null, gateFrom = null;
 const gate = $("#gate");
-gate.addEventListener("pointerdown", (e) => { e.preventDefault(); clearTimeout(gateTimer); gateTimer = setTimeout(openPanel, 2000); });
-["pointerup", "pointerleave", "pointercancel"].forEach((ev) => gate.addEventListener(ev, () => clearTimeout(gateTimer)));
+const gateStart = (x, y) => { clearTimeout(gateTimer); gateFrom = { x, y }; gateTimer = setTimeout(() => { gateFrom = null; openPanel(); }, 2000); };
+const gateStop = () => { clearTimeout(gateTimer); gateTimer = null; gateFrom = null; };
+const gateMove = (x, y) => { if (gateFrom && Math.hypot(x - gateFrom.x, y - gateFrom.y) > 40) gateStop(); };
+gate.addEventListener("pointerdown", (e) => { e.preventDefault(); try { gate.setPointerCapture(e.pointerId); } catch (_) {} if (!gateTimer) gateStart(e.clientX, e.clientY); });
+gate.addEventListener("pointermove", (e) => gateMove(e.clientX, e.clientY));
+gate.addEventListener("pointerup", gateStop);
+gate.addEventListener("pointercancel", () => { if (!gateTouch) gateStop(); });
+let gateTouch = false;
+gate.addEventListener("touchstart", (e) => { e.preventDefault(); gateTouch = true; const t = e.touches[0]; if (!gateTimer) gateStart(t.clientX, t.clientY); }, { passive: false });
+gate.addEventListener("touchmove", (e) => { e.preventDefault(); const t = e.touches[0]; if (t) gateMove(t.clientX, t.clientY); }, { passive: false });
+["touchend", "touchcancel"].forEach((ev) => gate.addEventListener(ev, (e) => { if (!e.touches.length) { gateTouch = false; gateStop(); } }));
 gate.addEventListener("contextmenu", (e) => e.preventDefault());
 
 const dlg = $("#parent");
@@ -211,16 +246,20 @@ function openPanel() {
   dlg.querySelectorAll('input[name="session"]').forEach((i) => (i.checked = +i.value === settings.sessionSec));
   $("#sens").value = settings.sensitivity; $("#turnGap").value = settings.turnGap; $("#skyClimb").value = settings.skyClimbSec;
   $("#sounds").checked = settings.sounds; $("#calm").checked = settings.calm;
-  refreshLabels(); updateFloorInfo(); showStats();
+  $("#saveSounds").checked = settings.saveSounds;
+  refreshLabels(); updateFloorInfo(); showStats(); showClips();
   dlg.showModal();
 }
-dlg.addEventListener("close", () => { panelOpen = false; turns.current = null; if (game && game.brain) game.brain.current = null; });
+dlg.addEventListener("close", () => { stopPlayback(); panelOpen = false; turns.current = null; if (game && game.brain) game.brain.current = null; });
 function refreshLabels() {
   const s = +$("#sens").value;
   $("#sensOut").textContent = s === 0 ? "normal" : s > 0 ? `+${s}` : `${s}`;
   $("#gapOut").textContent = `${(+$("#turnGap").value).toFixed(1)} s`;
   $("#skyOut").textContent = `${(+$("#skyClimb").value).toFixed(1)} s of voice`;
   $("#gapField").style.display = settings.mode === "turns" ? "" : "none";
+  $("#privacyNote").textContent = settings.saveSounds
+    ? "Liam's sounds are being saved as clips on this phone only. Nothing is uploaded unless you tap Share."
+    : "Everything stays on this phone. Nothing is recorded, saved or uploaded.";
 }
 dlg.addEventListener("input", (e) => {
   const el = e.target;
@@ -231,6 +270,7 @@ dlg.addEventListener("input", (e) => {
   if (el.id === "skyClimb") settings.skyClimbSec = +el.value;
   if (el.id === "sounds") settings.sounds = el.checked;
   if (el.id === "calm") settings.calm = el.checked;
+  if (el.id === "saveSounds") { settings.saveSounds = el.checked; mic.post({ type: "rec", on: el.checked }); if (!el.checked) clipReqs.clear(); }
   save(); refreshLabels();
 });
 $("#recal").addEventListener("click", () => { mic.post({ type: "calibrate", sec: 3 }); $("#floorInfo").textContent = "Measuring… stay quiet for 3 seconds."; });
@@ -266,6 +306,61 @@ function recordStat(dur) {
 }
 function showStats() { const d = loadStats()[today()] || { sounds: 0, longest: 0 }; $("#statSounds").textContent = d.sounds; $("#statLongest").textContent = d.longest.toFixed(1); }
 $("#clearStats").addEventListener("click", () => { localStorage.removeItem(STATS_KEY); showStats(); });
+
+// ---------- Liam's sounds list (grown-up settings) ----------
+const fmtSize = (b) => b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
+let player = null, playerUrl = null;
+function stopPlayback() { if (player) { player.pause(); player = null; } if (playerUrl) { URL.revokeObjectURL(playerUrl); playerUrl = null; } }
+async function showClips() {
+  let clips = [];
+  try { clips = await Clips.listClips(); } catch (e) { $("#recStatus").textContent = "Couldn't read saved clips on this phone."; }
+  const today = Clips.localDay(Date.now()), nToday = clips.filter((c) => Clips.localDay(c.created) === today).length;
+  const total = clips.reduce((a, c) => a + c.size, 0);
+  $("#recCount").textContent = clips.length
+    ? `${clips.length} clip${clips.length === 1 ? "" : "s"} (${fmtSize(total)}), ${nToday} today.`
+    : "No clips saved yet.";
+  $("#shareAll").disabled = $("#deleteAll").disabled = !clips.length; $("#shareToday").disabled = !nToday;
+  const ul = $("#recList"); ul.replaceChildren();
+  for (const c of clips) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="nm"></span><span class="meta"></span><button type="button" class="btn" data-play>Play</button><button type="button" class="btn danger" data-del>Delete</button>`;
+    const d = new Date(c.created), tabName = { kitten: "kitten", puppy: "puppy", balloon: "balloon", garden: "garden", sky: "sky" }[c.tab] || c.tab;
+    li.querySelector(".nm").textContent = `${d.toLocaleDateString("en-AU", { day: "numeric", month: "short" })} ${d.toLocaleTimeString("en-AU", { hour12: false })} · ${tabName}`;
+    li.querySelector(".nm").title = c.name; li.querySelector(".meta").textContent = `${c.dur.toFixed(1)} s`;
+    li.dataset.name = c.name; ul.appendChild(li);
+  }
+  ul.hidden = !clips.length;
+}
+$("#recList").addEventListener("click", async (e) => {
+  const li = e.target.closest("li"); if (!li) return;
+  if (e.target.closest("[data-play]")) {
+    stopPlayback(); const c = await Clips.getClip(li.dataset.name); if (!c) return;
+    playerUrl = URL.createObjectURL(c.blob); player = new Audio(playerUrl); player.play().catch(() => {});
+  } else if (e.target.closest("[data-del]")) {
+    if (!confirm(`Delete ${li.dataset.name}?`)) return;
+    stopPlayback(); await Clips.deleteClip(li.dataset.name); showClips();
+  }
+});
+async function share(which) {
+  const all = await Clips.listClips(), today = Clips.localDay(Date.now());
+  const clips = which === "today" ? all.filter((c) => Clips.localDay(c.created) === today) : all;
+  const label = which === "today" ? today : `all to ${today}`;
+  $("#recStatus").textContent = "Getting the clips ready…";
+  try {
+    const r = await Clips.shareClips(clips.slice().reverse(), label), pl = (n) => `${n} clip${n === 1 ? "" : "s"}`;
+    $("#recStatus").textContent = r.result === "downloaded" ? "This browser can't share files, so a .zip was downloaded instead."
+      : r.result !== "shared" ? ""
+      : r.shared === r.total ? `Shared ${pl(r.total)}.`
+      : `Shared ${r.from + 1}–${r.from + r.shared} of ${r.total}.${r.more ? " Tap the same button again for the next 10." : ""}`;
+  } catch (e) { console.error(e); $("#recStatus").textContent = "Sharing didn't work. Try again, or try Share today's."; }
+}
+$("#shareToday").addEventListener("click", () => share("today"));
+$("#shareAll").addEventListener("click", () => share("all"));
+$("#deleteAll").addEventListener("click", async () => {
+  const n = (await Clips.listClips()).length;
+  if (!n || !confirm(`Delete all ${n} saved clip${n === 1 ? "" : "s"} of Liam's sounds from this phone? This can't be undone.`)) return;
+  stopPlayback(); await Clips.deleteAll(); $("#recStatus").textContent = "All clips deleted."; showClips();
+});
 
 // ---------- go ----------
 renderTabs();
