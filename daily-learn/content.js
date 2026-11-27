@@ -7,6 +7,6 @@
   window.DAILY_LEARN_TOPICS = window.__DL_TOPICS || [];
   window.DAILY_LEARN_META = {
     timezoneNote: "Streaks use Australia/Sydney calendar dates. Topics are AI-generated when an xAI key is set; curated topics are offline fallback.",
-    version: "2.0.0"
+    version: "2.0.1"
   };
 })();

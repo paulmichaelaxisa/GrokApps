@@ -24,6 +24,7 @@
   }
 
   // ---------- validation ----------
+  function shapeOf(v) { return (global.DLAnim && v && global.DLAnim.shapeFor(v)) || undefined; }
   function validateQuiz(q) {
     if (!q || typeof q !== "object") return null;
     var question = s(q.q || q.question, 220);
@@ -48,7 +49,7 @@
     if (type === "reveal") {
       var rv = s(c.reveal || c.metaphor, 320);
       if (!rv) return null;
-      return { type: "reveal", prompt: s(c.prompt, 120) || "Think of it like\u2026", reveal: rv };
+      return { type: "reveal", title: s(c.title, 60), prompt: s(c.prompt, 120) || "Think of it like\u2026", reveal: rv, shape: shapeOf(c.shape || c.icon) };
     }
     if (type === "explain") {
       var sceneIn = c.scene && typeof c.scene === "object" ? Object.assign({}, c.scene) : c.scene;
@@ -83,7 +84,7 @@
         var ans = x.answer === true || x.answer === "true" || x.answer === "True" ? true : (x.answer === false || x.answer === "false" || x.answer === "False" ? false : null);
         var tx = s(x.text, 130);
         if (!tx || ans === null) return null;
-        return { text: tx, answer: ans, why: s(x.why, 180) };
+        return { text: tx, answer: ans, why: s(x.why, 180), shape: shapeOf(x.shape || x.icon) };
       }).filter(Boolean);
       if (st.length < 2) return null;
       return { type: "swipe", prompt: s(c.prompt, 100) || "True or false? Swipe or tap", statements: st.slice(0, 4) };
@@ -93,7 +94,7 @@
       var steps = (Array.isArray(c.steps) ? c.steps : []).map(function (x) { return s(typeof x === "string" ? x : x && (x.text || x.label), 80); })
         .filter(function (x) { if (!x || seenS[x.toLowerCase()]) return false; seenS[x.toLowerCase()] = 1; return true; });
       if (steps.length < 3) return null;
-      return { type: "order", prompt: s(c.prompt, 100) || "Put the steps in order", steps: steps.slice(0, 5) };
+      return { type: "order", prompt: s(c.prompt, 100) || "Put the steps in order", steps: steps.slice(0, 5), why: s(c.why, 220) };
     }
     return null;
   }
@@ -175,7 +176,6 @@
   var RENDER = {};
 
   RENDER.text = function (card, wrap, ctx) {
-    wrap.appendChild(h("div", "dl-kicker", "Read"));
     if (card.title) wrap.appendChild(h("h2", "dl-card-title", card.title));
     wrap.appendChild(h("p", "dl-body", card.text));
     if (card.example) {
@@ -187,97 +187,219 @@
     if (!(ctx.saved && ctx.saved.done)) ctx.complete({ xp: global.DLGame.XP.cardRead });
   };
 
+  // ---------- shared: haptics, glyphs, bottom sheet ----------
+  var HAPTIC = { tick: 8, confirm: [14], wrong: [10, 60, 10], medium: 24 };
+  function haptic(kind) {
+    try { if (localStorage.getItem("daily-learn-haptics") === "0") return; } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate(HAPTIC[kind] || 8); } catch (e) {}
+  }
+  function glyphHTML(shape, tone, size) {
+    var shp = global.DLAnim && global.DLAnim.shapeFor(shape);
+    return shp ? global.DLAnim.shapeSvg(shp, tone, size) : "";
+  }
+  function reduced() { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } }
+  function ordinal(n) { return n + (n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"); }
+  var SVG_CHECK = '<svg viewBox="0 0 20 20" width="28" height="28" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="var(--success)"/><path d="M6 10.2l2.6 2.6L14 7.6" fill="none" stroke="var(--on-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var SVG_X = '<svg viewBox="0 0 20 20" width="28" height="28" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="var(--error-soft)"/><path d="M7 7l6 6M13 7l-6 6" stroke="var(--error-ink)" stroke-width="2" stroke-linecap="round"/></svg>';
+  var SVG_BOOKMARK = '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 3h10v14l-5-3.4L5 17z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M7.6 8.4l1.7 1.7 3.2-3.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  /**
+   * Bottom feedback sheet (Remy 2b·8 + 2a). opts: { kind: "success"|"wrong", headline, xp, body, why,
+   *   answer (text for the Answer chip), review (true when saved to Review later), button, onClose }
+   */
+  var Sheet = (function () {
+    var root = null, closeCb = null;
+    function build() {
+      root = h("div", "dl-sheet-root"); root.hidden = true;
+      root.innerHTML = '<div class="dl-scrim"></div><section class="dl-sheet" role="dialog" aria-modal="true" aria-labelledby="dlSheetHead"><img class="dl-sheet-lumi lumi" alt="" hidden /><div class="dl-sheet-inner"></div></section>';
+      document.body.appendChild(root);
+      root.querySelector(".dl-scrim").addEventListener("click", function () { /* tap outside does nothing: "Got it" is the action */ });
+    }
+    function show(o) {
+      if (!root) build();
+      var sheet = root.querySelector(".dl-sheet"), inner = root.querySelector(".dl-sheet-inner");
+      sheet.className = "dl-sheet dl-sheet-" + o.kind;
+      inner.innerHTML = "";
+      var head = h("div", "dl-sheet-head");
+      head.insertAdjacentHTML("beforeend", o.kind === "success" ? SVG_CHECK : SVG_X);
+      var hd = h("h2", "dl-sheet-title", o.headline); hd.id = "dlSheetHead"; hd.tabIndex = -1;
+      head.appendChild(hd);
+      if (o.xp) head.appendChild(h("span", "xp-chip", "+" + o.xp + " XP"));
+      inner.appendChild(head);
+      if (o.answer) {
+        var ar = h("div", "dl-sheet-answer");
+        ar.appendChild(h("span", "eyebrow", "Answer"));
+        var chip = h("span", "dl-answer-chip"); chip.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="var(--success)"/><path d="M6 10.2l2.6 2.6L14 7.6" fill="none" stroke="var(--on-success)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+        chip.appendChild(document.createTextNode(o.answer)); ar.appendChild(chip);
+        inner.appendChild(ar);
+      }
+      if (o.why || o.body) {
+        var p = h("p", "dl-sheet-body");
+        if (o.why) { p.appendChild(h("strong", null, "Why: ")); p.appendChild(document.createTextNode(o.why)); }
+        else p.textContent = o.body;
+        inner.appendChild(p);
+      }
+      if (o.review) {
+        var rv = h("div", "dl-review-note");
+        rv.insertAdjacentHTML("beforeend", SVG_BOOKMARK);
+        var t = h("span"); t.innerHTML = "Saved to <b>Review later</b>. It comes back in the boss quiz.";
+        rv.appendChild(t); inner.appendChild(rv);
+      }
+      var btn = h("button", "btn " + (o.kind === "success" ? "btn-success" : "btn-primary"), o.button || (o.kind === "success" ? "Continue" : "Got it"));
+      btn.type = "button";
+      inner.appendChild(btn);
+      var lumi = root.querySelector(".dl-sheet-lumi"), T = global.DL_THEME || {};
+      if (T.lumi && T.mascot) { lumi.src = o.kind === "success" ? T.mascot.cheer : T.mascot.thinking; lumi.hidden = false; } else lumi.hidden = true;
+      closeCb = o.onClose;
+      btn.addEventListener("click", function () { close(true); });
+      root.hidden = false;
+      root.classList.remove("show"); void root.offsetWidth; root.classList.add("show");
+      haptic(o.kind === "success" ? "confirm" : "wrong");
+      setTimeout(function () { try { hd.focus({ preventScroll: true }); } catch (e) {} }, 60);
+      document.addEventListener("keydown", onKey);
+    }
+    function onKey(e) { if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); close(true); } }
+    function close(fire) {
+      if (!root || root.hidden) return;
+      document.removeEventListener("keydown", onKey);
+      root.hidden = true; root.classList.remove("show");
+      var cb = closeCb; closeCb = null;
+      if (fire && cb) cb();
+    }
+    return { show: show, close: close, get open() { return !!root && !root.hidden; } };
+  })();
+
   RENDER.reveal = function (card, wrap, ctx) {
-    wrap.appendChild(h("div", "dl-kicker", "Tap to reveal"));
+    var X = global.DLGame.XP, done = !!(ctx.saved && ctx.saved.done);
+    wrap.appendChild(h("h2", "dl-card-title", card.title || "What's the big idea?"));
+    var stack = h("div", "dl-reveal");
+    stack.appendChild(h("div", "dl-reveal-ghost"));
     var flip = h("button", "dl-flip");
     flip.type = "button";
+    flip.setAttribute("aria-label", "Reveal the answer for: " + card.prompt);
+    flip.setAttribute("aria-expanded", "false");
     var front = h("div", "dl-face dl-front");
-    front.appendChild(h("div", "dl-flip-icon", "\uD83E\uDD14"));
+    front.appendChild(h("span", "eyebrow", "Think first"));
     front.appendChild(h("p", "dl-flip-prompt", card.prompt));
-    front.appendChild(h("span", "dl-mini", "Tap the card"));
+    var disc = h("div", "dl-flip-disc");
+    disc.innerHTML = glyphHTML(card.shape || "lightbulb", "highlight", 64) || '<span class="dl-flip-emoji">?</span>';
+    front.appendChild(disc);
+    var chip = h("span", "dl-reveal-chip");
+    chip.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M6 8V3.5a1.2 1.2 0 0 1 2.4 0V7l3 .7a1.6 1.6 0 0 1 1.2 1.8l-.5 3.2a1.6 1.6 0 0 1-1.6 1.3H7.4a1.6 1.6 0 0 1-1.3-.7L3.8 10a1.1 1.1 0 0 1 1.7-1.4z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>Tap to reveal';
+    front.appendChild(chip);
     var back = h("div", "dl-face dl-back");
-    back.appendChild(h("div", "dl-flip-icon", "\uD83D\uDCA1"));
-    back.appendChild(h("p", "dl-flip-text", card.reveal));
+    back.appendChild(h("span", "eyebrow dl-accent", "The answer"));
+    var bt = h("p", "dl-flip-text", card.reveal); bt.tabIndex = -1; bt.setAttribute("aria-live", "polite");
+    back.appendChild(bt);
+    var foot = h("div", "dl-back-foot");
+    foot.appendChild(h("span", "dl-mini", "\u21BA Tap to see the question again"));
+    var xpChip = h("span", "xp-chip dl-xp-float", "+" + X.cardRead + " XP");
+    foot.appendChild(xpChip);
+    back.appendChild(foot);
     flip.appendChild(front); flip.appendChild(back);
-    wrap.appendChild(flip);
-    var done = ctx.saved && ctx.saved.done;
-    if (done) flip.classList.add("flipped");
-    flip.addEventListener("click", function () {
-      flip.classList.add("flipped");
-      if (!done) { done = true; ctx.complete({ xp: global.DLGame.XP.cardRead }); }
-    });
+    stack.appendChild(flip);
+    wrap.appendChild(stack);
+    wrap.appendChild(h("p", "dl-mini dl-under", "Have a guess first. Then flip the card."));
+    function setState(isBack) {
+      flip.classList.toggle("flipped", isBack);
+      flip.setAttribute("aria-expanded", isBack ? "true" : "false");
+      flip.setAttribute("aria-label", isBack ? "Show the question again" : "Reveal the answer for: " + card.prompt);
+      if (isBack) ctx.setFoot(null);
+      else ctx.setFoot({ label: "Reveal", style: "outline", enabled: true, onClick: toggle });
+    }
+    function toggle() {
+      var toBack = !flip.classList.contains("flipped");
+      if (toBack) haptic("tick");
+      setState(toBack);
+      if (toBack) {
+        setTimeout(function () { try { bt.focus({ preventScroll: true }); } catch (e) {} }, 430);
+        if (!done) { done = true; xpChip.classList.add("in"); ctx.complete({ xp: X.cardRead }); }
+        else xpChip.classList.add("seen");
+      }
+    }
+    flip.addEventListener("click", toggle);
+    if (done) { xpChip.classList.add("seen"); }
+    setState(done);
   };
 
   RENDER.explain = function (card, wrap, ctx) {
-    wrap.appendChild(h("div", "dl-kicker", "Watch it move"));
     if (card.title) wrap.appendChild(h("h2", "dl-card-title", card.title));
     var host = h("div", "dl-anim");
     wrap.appendChild(host);
-    if (card.text) wrap.appendChild(h("p", "dl-body dl-explain-text", card.text));
-    var done = ctx.saved && ctx.saved.done;
+    if (card.text) wrap.appendChild(h("p", "dl-note", card.text));
+    var done = !!(ctx.saved && ctx.saved.done);
     var autoplay = false;
     try { autoplay = localStorage.getItem("daily-learn-autoplay") === "1"; } catch (e) {}
-    var player = global.DLAnim.mount(host, card.scene, {
+    var player;
+    function foot(st) {
+      if (!st) return;
+      if (st.last || done) ctx.setFoot(null);
+      else ctx.setFoot({ label: "Next step", style: "primary", enabled: true, onClick: function () { player.next(); } });
+    }
+    player = global.DLAnim.mount(host, card.scene, {
+      mode: "lesson",
       autoplay: autoplay,
+      onStep: foot,
+      onDone: function () { ctx.advance(); },
       onComplete: function () {
         if (done) return;
         done = true;
         global.DLGame.bump("explainersWatched");
         ctx.complete({ xp: global.DLGame.XP.explainWatched });
+        ctx.setFoot(null);
       }
     });
+    foot({ index: player.index, count: player.total, last: player.index === player.total - 1 });
     return { destroy: function () { player.destroy(); }, player: player };
   };
 
   RENDER.quiz = function (card, wrap, ctx) {
-    wrap.appendChild(h("div", "dl-kicker", ctx.mode === "boss" ? "Boss question" : "Quick check"));
+    var X = global.DLGame.XP;
+    if (card.reviewId) wrap.appendChild(h("span", "dl-review-tag", "From Review later" + (card.reviewFrom ? " \u00b7 " + card.reviewFrom : "")));
     wrap.appendChild(h("h2", "dl-card-title dl-q", card.q));
     var list = h("div", "dl-choices");
     wrap.appendChild(list);
-    var fb = h("div", "dl-feedback");
-    var check = h("button", "btn btn-primary dl-check", "Check answer");
-    check.type = "button"; check.disabled = true;
     var sel = null, answered = false;
     var btns = card.choices.map(function (c, i) {
       var b = h("button", "choice", c);
       b.type = "button";
       b.addEventListener("click", function () {
         if (answered) return;
-        sel = i;
-        btns.forEach(function (x, j) { x.classList.toggle("selected", j === i); });
-        check.disabled = false;
+        sel = i; haptic("tick");
+        btns.forEach(function (x, j) { x.classList.toggle("selected", j === i); x.setAttribute("aria-pressed", j === i ? "true" : "false"); });
+        ctx.setFoot({ label: "Check", style: "primary", enabled: true, onClick: check });
       });
       list.appendChild(b);
       return b;
     });
-    wrap.appendChild(check);
-    wrap.appendChild(fb);
-    function show(choice, award) {
-      answered = true;
+    function paint(choice) {
       var ok = choice === card.correct;
       btns.forEach(function (b, j) {
         b.disabled = true;
         if (j === card.correct) b.classList.add("correct");
         if (j === choice && !ok) b.classList.add("wrong");
-        if (j === choice) b.classList.add("selected");
       });
-      fb.className = "dl-feedback show " + (ok ? "ok" : "bad");
-      fb.innerHTML = "";
-      fb.appendChild(h("strong", null, ok ? "Nice! " : "Not quite. "));
-      fb.appendChild(document.createTextNode(card.why || ""));
-      check.hidden = true;
-      if (award) {
-        var X = global.DLGame.XP;
-        var xp = ctx.mode === "boss" ? (ok ? X.bossCorrect : 0) : (ok ? X.quizCorrect : X.quizWrong);
-        ctx.complete({ xp: xp, correct: ok, perfect: ok, detail: { choice: choice } });
-      }
+      return ok;
     }
-    check.addEventListener("click", function () { if (sel != null && !answered) show(sel, true); });
-    if (ctx.saved && ctx.saved.done && ctx.saved.result && ctx.saved.result.detail) show(ctx.saved.result.detail.choice, false);
+    function check() {
+      if (sel == null || answered) return;
+      answered = true;
+      var ok = paint(sel);
+      var xp = ok ? (ctx.mode === "boss" ? X.bossCorrect : X.quizCorrect) : 0;
+      var rv = ok ? null : ctx.missed(card, {});
+      if (card.reviewId) ctx.reviewAnswer(card.reviewId, ok);
+      ctx.complete({ xp: xp, correct: ok, perfect: ok, detail: { choice: sel } });
+      ctx.setFoot(null);
+      Sheet.show(ok
+        ? { kind: "success", headline: pick(["Nice, that's it", "Spot on", "Yes, exactly"]), xp: xp, body: card.why, onClose: ctx.advance }
+        : { kind: "wrong", headline: "Not quite", answer: card.choices[card.correct], why: card.why, review: !!rv, onClose: ctx.advance });
+    }
+    if (ctx.saved && ctx.saved.done && ctx.saved.result && ctx.saved.result.detail) { answered = true; paint(ctx.saved.result.detail.choice); }
+    else ctx.setFoot({ label: "Check", style: "primary", enabled: false });
   };
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 
   RENDER.match = function (card, wrap, ctx) {
-    wrap.appendChild(h("div", "dl-kicker", "Drag to match"));
     wrap.appendChild(h("h2", "dl-card-title", card.prompt));
     wrap.appendChild(h("p", "dl-mini dl-hint", "Drag a term onto its meaning, or tap one then the other."));
     var grid = h("div", "dl-match");
@@ -317,7 +439,13 @@
           finished = true;
           status.textContent = mistakes ? ("All matched \u00b7 " + mistakes + " slip" + (mistakes > 1 ? "s" : "")) : "Perfect match!";
           var X = global.DLGame.XP;
-          ctx.complete({ xp: mistakes ? X.interactiveOk : X.interactivePerfect, perfect: !mistakes });
+          var mxp = mistakes ? X.interactiveOk : X.interactivePerfect;
+          ctx.complete({ xp: mxp, perfect: !mistakes });
+          ctx.setFoot(null);
+          setTimeout(function () {
+            Sheet.show({ kind: "success", headline: mistakes ? "All matched" : "Nice, " + card.pairs.length + " for " + card.pairs.length, xp: mxp,
+              body: mistakes ? mistakes + " slip" + (mistakes > 1 ? "s" : "") + " on the way, but every term is in the right place now." : "Every term went straight to its meaning.", onClose: ctx.advance });
+          }, 420);
         }
       } else {
         mistakes++;
@@ -325,7 +453,8 @@
         slots[mi].classList.add("wrong"); sl.textContent = "\u2715 " + card.pairs[ti].term;
         setTimeout(function () { slots[mi].classList.remove("wrong"); if (!matched[mi]) sl.textContent = prev; }, 600);
         [terms[ti], slots[mi]].forEach(function (e) { e.classList.remove("shake"); void e.offsetWidth; e.classList.add("shake"); setTimeout(function () { e.classList.remove("shake"); }, 400); });
-        status.textContent = "Not that one \u2014 try again.";
+        status.textContent = "Not that one. Try another meaning.";
+        haptic("wrong");
       }
       clearSel();
     }
@@ -397,184 +526,334 @@
   }
 
   RENDER.swipe = function (card, wrap, ctx) {
-    wrap.appendChild(h("div", "dl-kicker", "Swipe true or false"));
-    wrap.appendChild(h("h2", "dl-card-title", card.prompt));
+    var X = global.DLGame.XP, reduce = reduced();
+    wrap.appendChild(h("h2", "dl-card-title", card.prompt || "Swipe it: true or false?"));
     var deck = h("div", "dl-deck");
+    deck.setAttribute("aria-roledescription", "true or false cards");
     wrap.appendChild(deck);
-    var counter = h("p", "dl-mini dl-status", "");
-    var row = h("div", "dl-swipe-btns");
-    var bF = h("button", "btn dl-false", "\u2717 False"); bF.type = "button";
-    var bT = h("button", "btn dl-true", "\u2713 True"); bT.type = "button";
-    row.appendChild(bF); row.appendChild(bT);
-    wrap.appendChild(row);
-    var fb = h("div", "dl-feedback");
-    wrap.appendChild(fb);
-    var nextBtn = h("button", "btn btn-secondary dl-next-st", "Next statement"); nextBtn.type = "button"; nextBtn.hidden = true;
-    wrap.appendChild(nextBtn);
-    wrap.appendChild(counter);
-    var idx = 0, correct = 0, busy = false, results = [];
+    var btnRow = h("div", "dl-swipe-btns");
+    var bF = h("button", "btn dl-false"); bF.type = "button"; bF.innerHTML = '<span aria-hidden="true">\u2715</span> False';
+    var bT = h("button", "btn dl-true"); bT.type = "button"; bT.innerHTML = '<span aria-hidden="true">\u2713</span> True';
+    btnRow.appendChild(bF); btnRow.appendChild(bT);
+    wrap.appendChild(btnRow);
+    var cap = h("p", "dl-mini dl-under", "Swipe the card, or tap a button");
+    wrap.appendChild(cap);
+    var live = h("p", "sr-only"); live.setAttribute("aria-live", "polite"); wrap.appendChild(live);
+    var n = card.statements.length, idx = 0, correct = 0, busy = false, results = [];
     var cards = card.statements.map(function (st, i) {
       var c = h("div", "dl-st");
-      c.appendChild(h("div", "dl-st-num", (i + 1) + " / " + card.statements.length));
+      c.tabIndex = -1;
+      c.setAttribute("role", "group");
+      c.setAttribute("aria-label", "Statement " + (i + 1) + " of " + n + ": " + st.text + ". Swipe or use the True and False buttons.");
+      var top = h("div", "dl-st-top");
+      top.appendChild(h("span", "eyebrow", "True or false \u00b7 " + (i + 1) + " of " + n));
+      var said = h("span", "dl-said"); top.appendChild(said);
+      c.appendChild(top);
+      var g = glyphHTML(st.shape || card.shape, "highlight", 40);
+      if (g) { var tile = h("div", "dl-st-tile"); tile.innerHTML = g; c.appendChild(tile); }
       c.appendChild(h("p", "dl-st-text", st.text));
-      c.appendChild(h("div", "dl-st-tag dl-tag-true", "TRUE"));
-      c.appendChild(h("div", "dl-st-tag dl-tag-false", "FALSE"));
-      c.style.zIndex = 10 - i;
+      var cues = h("div", "dl-st-cues"); cues.appendChild(h("span", null, "\u2039 False")); cues.appendChild(h("span", null, "True \u203A"));
+      c.appendChild(cues);
+      var stamp = h("span", "dl-stamp"); c.appendChild(stamp);
+      c.appendChild(h("i", "dl-st-tint"));
       deck.appendChild(c);
       return c;
     });
+    var glowL = h("i", "dl-edge dl-edge-l"), glowR = h("i", "dl-edge dl-edge-r");
+    deck.appendChild(glowL); deck.appendChild(glowR);
     function layout() {
       cards.forEach(function (c, i) {
         var d = i - idx;
         c.classList.toggle("gone", d < 0);
-        if (d >= 0) { c.style.transform = "translateY(" + (d * 8) + "px) scale(" + (1 - d * 0.04) + ")"; c.style.opacity = d > 2 ? 0 : 1; }
+        c.style.zIndex = String(10 - d);
+        c.style.transition = "";
+        if (d >= 0) {
+          c.style.transform = "translateY(" + (Math.min(d, 2) * 12) + "px) scale(" + (1 - Math.min(d, 2) * 0.04) + ")";
+          c.style.opacity = d === 0 ? 1 : (d === 1 ? 0.85 : (d === 2 ? 0.5 : 0));
+          c.classList.toggle("front", d === 0);
+          c.setAttribute("aria-hidden", d === 0 ? "false" : "true");
+        }
       });
-      counter.textContent = idx < cards.length ? "" : (correct + " / " + cards.length + " right");
+    }
+    function setLean(c, dx) {
+      var p = Math.min(1, Math.abs(dx) / 96), side = dx > 0 ? "true" : "false";
+      c.style.setProperty("--tint", (p * 12) + "%");
+      c.classList.toggle("lean-true", dx > 24); c.classList.toggle("lean-false", dx < -24);
+      var stamp = c.querySelector(".dl-stamp");
+      stamp.textContent = side === "true" ? "TRUE" : "FALSE";
+      stamp.style.opacity = Math.abs(dx) < 24 ? 0 : Math.min(1, (Math.abs(dx) - 24) / 72);
+      glowL.style.opacity = dx < 0 ? p : 0; glowR.style.opacity = dx > 0 ? p : 0;
+      bT.classList.toggle("pressed", dx >= 96); bF.classList.toggle("pressed", dx <= -96);
+    }
+    function clearLean(c) {
+      c.classList.remove("lean-true", "lean-false"); c.style.setProperty("--tint", "0%");
+      c.querySelector(".dl-stamp").style.opacity = 0; glowL.style.opacity = 0; glowR.style.opacity = 0;
+      bT.classList.remove("pressed"); bF.classList.remove("pressed");
     }
     function decide(ans) {
-      if (busy || idx >= cards.length) return;
+      if (busy || idx >= n) return;
       busy = true;
       var st = card.statements[idx], ok = ans === st.answer, c = cards[idx];
       if (ok) correct++;
       results.push(ok);
-      c.style.transition = "transform .35s var(--ease-out), opacity .35s";
-      c.style.transform = "translateX(" + (ans ? 420 : -420) + "px) rotate(" + (ans ? 8 : -8) + "deg)";
-      c.style.opacity = 0;
-      fb.className = "dl-feedback show " + (ok ? "ok" : "bad");
-      fb.innerHTML = "";
-      fb.appendChild(h("strong", null, (ok ? "Yes! " : "Nope. ") + "It's " + (st.answer ? "true" : "false") + ". "));
-      fb.appendChild(document.createTextNode(st.why || ""));
+      // settle back with the result (Remy 6c / 8a), then fly out on "Continue"/"Got it"
+      clearLean(c);
+      c.style.transition = reduce ? "opacity 150ms" : "transform 360ms var(--ease-spring)";
+      c.style.transform = "none";
+      c.classList.add(ok ? "result-ok" : "result-bad");
+      c.querySelector(".dl-said").textContent = "You said " + (ans ? "true" : "false");
+      (ans ? bT : bF).classList.add("pressed");
       bF.disabled = bT.disabled = true;
-      idx++;
-      if (idx >= cards.length) {
-        layout();
-        ctx.complete({ xp: correct * global.DLGame.XP.swipeCorrect, perfect: correct === cards.length, correct: correct });
-        busy = false;
-      } else { nextBtn.hidden = false; try { nextBtn.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) {} }
+      live.textContent = (ok ? "Right. " : "Not quite. ") + "It's " + (st.answer ? "true" : "false") + ".";
+      var last = idx === n - 1, xp = ok ? X.swipeCorrect : 0;
+      var rv = ok ? null : ctx.missed(card, { statement: st });
+      if (last) ctx.complete({ xp: correct * X.swipeCorrect, perfect: correct === n, correct: correct });
+      ctx.setFoot(null);
+      Sheet.show(ok
+        ? { kind: "success", headline: "Right, it's " + (st.answer ? "true" : "false"), xp: xp, body: st.why, onClose: function () { flyOut(ans, last); } }
+        : { kind: "wrong", headline: "Not quite. It's " + (st.answer ? "true" : "false"), answer: st.answer ? "True" : "False", why: st.why, review: !!rv, onClose: function () { flyOut(ans, last); } });
     }
-    nextBtn.addEventListener("click", function () {
-      nextBtn.hidden = true; fb.className = "dl-feedback"; busy = false; bF.disabled = bT.disabled = false; layout();
-    });
+    function flyOut(ans, last) {
+      var c = cards[idx];
+      bT.classList.remove("pressed"); bF.classList.remove("pressed");
+      if (last) { busy = false; idx = n; summary(); ctx.advance(); return; }
+      if (reduce) { c.style.transition = "opacity 150ms"; c.style.opacity = 0; }
+      else {
+        c.style.transition = "transform 280ms var(--ease-in), opacity 280ms var(--ease-in)";
+        c.style.transform = "translateX(" + (ans ? 480 : -480) + "px) rotate(" + (ans ? 14 : -14) + "deg)";
+        c.style.opacity = 0;
+      }
+      setTimeout(function () {
+        idx++; busy = false; bF.disabled = bT.disabled = false;
+        cards.forEach(function (x) { x.style.transition = "transform 280ms var(--ease-out), opacity 280ms var(--ease-out)"; });
+        layout();
+        try { cards[idx].focus({ preventScroll: true }); } catch (e) {}
+      }, reduce ? 150 : 280);
+    }
+    function summary() {
+      deck.classList.add("done");
+      cards.forEach(function (c) { c.classList.add("gone"); });
+      var sum = h("div", "dl-st-summary");
+      sum.appendChild(h("p", "dl-st-score", correct + " of " + n + " right"));
+      var ol = h("ul");
+      card.statements.forEach(function (st, i) {
+        var li = h("li", results[i] ? "ok" : "bad");
+        li.appendChild(h("b", null, (st.answer ? "True" : "False") + ": "));
+        li.appendChild(document.createTextNode(st.text));
+        ol.appendChild(li);
+      });
+      sum.appendChild(ol);
+      deck.appendChild(sum);
+      btnRow.hidden = true; cap.hidden = true;
+    }
     bF.addEventListener("click", function () { decide(false); });
     bT.addEventListener("click", function () { decide(true); });
+    wrap.addEventListener("keydown", function (e) {
+      if (Sheet.open || idx >= n) return;
+      if (e.key === "ArrowLeft") { e.preventDefault(); decide(false); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); decide(true); }
+    });
     deck.addEventListener("pointerdown", function (e) {
-      var c = cards[idx];
-      if (!c || busy || !c.contains(e.target)) return;
-      var sx = e.clientX, dx = 0;
+      if (busy || idx >= n || reduce) return;
+      var c = cards[idx]; if (!c.contains(e.target)) return;
+      var x0 = e.clientX, y0 = e.clientY, dx = 0, crossed = false, samples = [{ x: x0, t: performance.now() }], dragging = false;
+      c.setPointerCapture && c.setPointerCapture(e.pointerId);
       c.style.transition = "none";
-      try { c.setPointerCapture(e.pointerId); } catch (er) {}
-      function mv(ev) {
-        dx = ev.clientX - sx;
-        c.style.transform = "translateX(" + dx + "px) rotate(" + Math.max(-8, Math.min(8, dx / 14)) + "deg)";
-        c.style.setProperty("--tint", Math.min(12, Math.abs(dx) / 8) + "%");
-        c.classList.toggle("lean-true", dx > 40); c.classList.toggle("lean-false", dx < -40);
+      function move(ev) {
+        dx = ev.clientX - x0;
+        if (!dragging && Math.abs(dx) < 6) return;
+        if (!dragging && Math.abs(ev.clientY - y0) > Math.abs(dx) * 1.5) { up(); return; }
+        dragging = true; c.classList.add("dragging");
+        samples.push({ x: ev.clientX, t: performance.now() }); if (samples.length > 5) samples.shift();
+        var rot = Math.max(-8, Math.min(8, dx / 16));
+        c.style.transform = "translateX(" + dx + "px) rotate(" + rot + "deg)";
+        setLean(c, dx);
+        var over = Math.abs(dx) >= 96;
+        if (over && !crossed) haptic("tick");
+        crossed = over;
       }
       function up() {
-        c.removeEventListener("pointermove", mv); c.removeEventListener("pointerup", up); c.removeEventListener("pointercancel", up);
-        c.classList.remove("lean-true", "lean-false");
-        if (Math.abs(dx) > 96) decide(dx > 0);
-        else { c.style.transition = "transform .25s var(--ease-spring)"; layout(); }
+        document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up);
+        c.classList.remove("dragging");
+        var a = samples[0], b = samples[samples.length - 1], v = b.t > a.t ? (b.x - a.x) / (b.t - a.t) : 0;
+        if (dragging && (Math.abs(dx) >= 96 || (Math.abs(v) > 0.8 && Math.abs(dx) > 24))) { decide((Math.abs(dx) >= 96 ? dx : v) > 0); return; }
+        c.style.transition = "transform 360ms var(--ease-spring)";
+        c.style.transform = "none";
+        clearLean(c);
       }
-      c.addEventListener("pointermove", mv); c.addEventListener("pointerup", up); c.addEventListener("pointercancel", up);
+      document.addEventListener("pointermove", move); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
     });
     layout();
-    if (ctx.saved && ctx.saved.done) {
-      idx = cards.length; layout(); bF.disabled = bT.disabled = true;
-      var list = h("ul", "dl-st-summary");
-      card.statements.forEach(function (st) { list.appendChild(h("li", null, (st.answer ? "\u2713 True: " : "\u2717 False: ") + st.text)); });
-      deck.replaceWith(list);
-      counter.textContent = "Done";
-    }
+    if (ctx.saved && ctx.saved.done) { idx = n; results = card.statements.map(function () { return true; }); correct = (ctx.saved.result && ctx.saved.result.correct) || n; summary(); }
+    else ctx.setFoot({ label: "Continue", style: "primary", enabled: false });
   };
 
   RENDER.order = function (card, wrap, ctx) {
-    wrap.appendChild(h("div", "dl-kicker", "Put in order"));
+    var X = global.DLGame.XP, reduce = reduced();
+    if (card.reviewId) wrap.appendChild(h("span", "dl-review-tag", "From Review later" + (card.reviewFrom ? " \u00b7 " + card.reviewFrom : "")));
     wrap.appendChild(h("h2", "dl-card-title", card.prompt));
-    wrap.appendChild(h("p", "dl-mini dl-hint", "Drag the handles (or use the arrows), then check."));
+    wrap.appendChild(h("p", "dl-mini dl-hint", "Drag the handles, or tap a row and use \u25B2\u25BC. First step at the top."));
     var list = h("ol", "dl-order");
+    list.setAttribute("aria-label", "Steps to put in order");
     wrap.appendChild(list);
-    var check = h("button", "btn btn-primary dl-check", "Check order"); check.type = "button";
-    wrap.appendChild(check);
-    var status = h("p", "dl-mini dl-status", "");
-    wrap.appendChild(status);
-    var tries = 0, finished = false;
-    var start = (ctx.saved && ctx.saved.done) ? card.steps.map(function (_, i) { return i; }) : shuffledNotIdentity(card.steps.length);
-    start.forEach(function (i) { list.appendChild(row(i)); });
-    function row(i) {
+    var foot = h("p", "dl-mini dl-under", "Rows make room as you drag \u00b7 release to drop");
+    wrap.appendChild(foot);
+    var live = h("p", "sr-only"); live.setAttribute("aria-live", "polite"); wrap.appendChild(live);
+    var order = shuffledNotIdentity(card.steps.length), finished = false, selected = null;
+    function rows() { return Array.prototype.slice.call(list.querySelectorAll(".dl-step")); }
+    order.forEach(function (i) {
       var li = h("li", "dl-step");
       li.dataset.i = i;
-      var handle = h("span", "dl-handle", "\u2630");
-      var txt = h("span", "dl-step-text", card.steps[i]);
-      var up = h("button", "dl-arrow", "\u25B2"); up.type = "button"; up.setAttribute("aria-label", "Move up");
-      var dn = h("button", "dl-arrow", "\u25BC"); dn.type = "button"; dn.setAttribute("aria-label", "Move down");
-      up.addEventListener("click", function () { if (finished) return; var p = li.previousElementSibling; if (p) { flipMove(function () { list.insertBefore(li, p); }); } });
-      dn.addEventListener("click", function () { if (finished) return; var n = li.nextElementSibling; if (n) { flipMove(function () { list.insertBefore(n, li); }); } });
-      li.appendChild(handle); li.appendChild(txt); li.appendChild(up); li.appendChild(dn);
-      return li;
-    }
-    function flipMove(mutate) {
-      var items = Array.prototype.slice.call(list.children);
-      var before = items.map(function (x) { return x.getBoundingClientRect().top; });
-      mutate();
-      items.forEach(function (x, k) {
-        var d = before[k] - x.getBoundingClientRect().top;
-        if (!d) return;
-        x.style.transition = "none"; x.style.transform = "translateY(" + d + "px)";
-        requestAnimationFrame(function () { x.style.transition = "transform .25s var(--ease-out)"; x.style.transform = ""; });
+      li.tabIndex = 0;
+      var disc = h("span", "dl-disc", ""); li.appendChild(disc);
+      li.appendChild(h("span", "dl-step-text", card.steps[i]));
+      var chip = h("span", "dl-goes"); li.appendChild(chip);
+      var arrows = h("span", "dl-arrows");
+      var up = h("button", "dl-arrow", "\u25B2"); up.type = "button"; up.dataset.dir = "-1";
+      var dn = h("button", "dl-arrow", "\u25BC"); dn.type = "button"; dn.dataset.dir = "1";
+      arrows.appendChild(up); arrows.appendChild(dn); li.appendChild(arrows);
+      var handle = h("button", "dl-handle"); handle.type = "button";
+      handle.innerHTML = '<svg viewBox="0 0 12 18" width="12" height="18" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="3" cy="15" r="1.6"/><circle cx="9" cy="15" r="1.6"/></g></svg>';
+      li.appendChild(handle);
+      list.appendChild(li);
+    });
+    function renumber() {
+      rows().forEach(function (r, k) {
+        r.querySelector(".dl-disc").textContent = k + 1;
+        var txt = card.steps[+r.dataset.i];
+        r.querySelector(".dl-handle").setAttribute("aria-label", "Reorder " + txt + ", position " + (k + 1) + " of " + card.steps.length);
+        r.querySelector('[data-dir="-1"]').setAttribute("aria-label", "Move up: " + txt);
+        r.querySelector('[data-dir="1"]').setAttribute("aria-label", "Move down: " + txt);
+        r.querySelector('[data-dir="-1"]').disabled = k === 0;
+        r.querySelector('[data-dir="1"]').disabled = k === card.steps.length - 1;
       });
-      clearMarks();
     }
-    function clearMarks() { Array.prototype.forEach.call(list.children, function (x) { x.classList.remove("right", "wrongpos"); }); }
-    list.addEventListener("pointerdown", function (e) {
-      var hd = e.target.closest(".dl-handle"); if (!hd || finished) return;
-      var li = hd.parentNode; e.preventDefault();
-      li.classList.add("lifted");
-      var sy = e.clientY;
-      function mv(ev) {
-        ev.preventDefault();
-        li.style.transform = "translateY(" + (ev.clientY - sy) + "px)";
-        var sibs = Array.prototype.slice.call(list.children).filter(function (x) { return x !== li; });
-        var y = ev.clientY;
-        for (var k = 0; k < sibs.length; k++) {
-          var r = sibs[k].getBoundingClientRect();
-          if (y < r.top + r.height / 2) {
-            if (sibs[k] !== li.nextElementSibling) { var before = li.getBoundingClientRect().top; list.insertBefore(li, sibs[k]); sy += li.getBoundingClientRect().top - before; li.style.transform = "translateY(" + (ev.clientY - sy) + "px)"; }
-            return;
-          }
-        }
-        if (li !== list.lastElementChild) { var b2 = li.getBoundingClientRect().top; list.appendChild(li); sy += li.getBoundingClientRect().top - b2; li.style.transform = "translateY(" + (ev.clientY - sy) + "px)"; }
-      }
-      function up() {
-        document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up);
-        li.classList.remove("lifted"); li.style.transform = ""; clearMarks();
-      }
-      document.addEventListener("pointermove", mv, { passive: false });
-      document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
-    });
-    check.addEventListener("click", function () {
+    function flip(mutate, dur) {
+      var before = rows().map(function (r) { return [r, r.getBoundingClientRect().top]; });
+      mutate();
+      if (reduce) { renumber(); return; }
+      before.forEach(function (p) {
+        var dy = p[1] - p[0].getBoundingClientRect().top;
+        if (!dy || p[0].classList.contains("lifted")) return;
+        p[0].style.transition = "none"; p[0].style.transform = "translateY(" + dy + "px)";
+        requestAnimationFrame(function () { p[0].style.transition = "transform " + (dur || 220) + "ms var(--ease-spring)"; p[0].style.transform = ""; });
+      });
+      renumber();
+    }
+    function move(r, dir) {
+      var rs = rows(), k = rs.indexOf(r), j = k + dir;
+      if (j < 0 || j >= rs.length || finished) return;
+      flip(function () { if (dir < 0) list.insertBefore(r, rs[j]); else list.insertBefore(rs[j], r); });
+      haptic("tick");
+      live.textContent = "Moved to position " + (j + 1);
+    }
+    function select(r) {
       if (finished) return;
-      tries++;
-      var items = Array.prototype.slice.call(list.children), allRight = true;
-      items.forEach(function (x, k) { var ok = +x.dataset.i === k; x.classList.toggle("right", ok); x.classList.toggle("wrongpos", !ok); if (!ok) allRight = false; });
-      var X = global.DLGame.XP;
-      if (allRight) {
-        finished = true; list.classList.add("solved"); check.hidden = true;
-        status.textContent = tries === 1 ? "Perfect order!" : "Got it!";
-        ctx.complete({ xp: tries === 1 ? X.interactivePerfect : X.interactiveOk, perfect: tries === 1 });
-      } else if (tries >= 2) {
-        status.textContent = "Here's the right order.";
-        setTimeout(function () {
-          flipMove(function () { card.steps.forEach(function (_, i) { list.appendChild(list.querySelector('[data-i="' + i + '"]')); }); });
-          Array.prototype.forEach.call(list.children, function (x) { x.classList.add("right"); });
-          finished = true; list.classList.add("solved"); check.hidden = true;
-          ctx.complete({ xp: X.cardRead, perfect: false });
-        }, 700);
-      } else {
-        status.textContent = "Green ones are in place. Fix the red ones and check again.";
-      }
+      if (selected && selected !== r) selected.classList.remove("selected");
+      selected = r && selected !== r ? r : null;
+      if (selected) selected.classList.add("selected"); else if (r) r.classList.remove("selected");
+    }
+    list.addEventListener("click", function (e) {
+      if (finished) return;
+      var a = e.target.closest(".dl-arrow");
+      if (a) { e.stopPropagation(); var r0 = a.closest(".dl-step"); move(r0, +a.dataset.dir); try { a.focus(); } catch (er) {} return; }
+      if (e.target.closest(".dl-handle")) return;
+      var r = e.target.closest(".dl-step"); if (r && !r._dragged) select(r);
     });
-    if (ctx.saved && ctx.saved.done) { finished = true; list.classList.add("solved"); check.hidden = true; Array.prototype.forEach.call(list.children, function (x) { x.classList.add("right"); }); }
+    list.addEventListener("keydown", function (e) {
+      var r = e.target.closest && e.target.closest(".dl-step"); if (!r || finished) return;
+      if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) { e.preventDefault(); move(r, e.key === "ArrowUp" ? -1 : 1); r.focus(); }
+    });
+    // drag: press the handle (immediate) or long-press a row for 250 ms
+    list.addEventListener("pointerdown", function (e) {
+      if (finished || e.button > 0 || e.target.closest(".dl-arrow")) return;
+      var r = e.target.closest(".dl-step"); if (!r) return;
+      var viaHandle = !!e.target.closest(".dl-handle"), x0 = e.clientX, y0 = e.clientY, started = false, timer = null, lastY = y0, gap = null, offset = 0, scrollT = null;
+      r._dragged = false;
+      function begin() {
+        started = true; r._dragged = true; haptic("tick");
+        var rect = r.getBoundingClientRect();
+        offset = y0 - rect.top;
+        gap = h("li", "dl-gap"); gap.style.height = rect.height + "px";
+        list.insertBefore(gap, r);
+        r.classList.add("lifted");
+        r.style.width = rect.width + "px"; r.style.left = rect.left + "px"; r.style.top = rect.top + "px";
+        document.body.appendChild(r);
+        if (selected) select(null);
+      }
+      function onMove(ev) {
+        lastY = ev.clientY;
+        if (!started) {
+          if (viaHandle && Math.abs(ev.clientY - y0) > 3) begin();
+          else if (!viaHandle && (Math.abs(ev.clientY - y0) > 8 || Math.abs(ev.clientX - x0) > 8)) { cancel(); return; }
+          if (!started) return;
+        }
+        ev.preventDefault();
+        r.style.top = (ev.clientY - offset) + "px";
+        var others = rows().filter(function (x) { return x !== r; }), target = null;
+        for (var k = 0; k < others.length; k++) { var b = others[k].getBoundingClientRect(); if (ev.clientY < b.top + b.height / 2) { target = others[k]; break; } }
+        if ((target && gap.nextSibling !== target) || (!target && list.lastChild !== gap)) {
+          flip(function () { if (target) list.insertBefore(gap, target); else list.appendChild(gap); });
+          haptic("tick");
+          var pos = Array.prototype.indexOf.call(list.children, gap) + 1;
+          live.textContent = "Position " + pos;
+        }
+        autoScroll();
+      }
+      function autoScroll() {
+        clearInterval(scrollT);
+        var edge = 70, vh = innerHeight, sp = lastY < edge ? -6 : (lastY > vh - edge - 80 ? 6 : 0);
+        if (sp) scrollT = setInterval(function () { scrollBy(0, sp); }, 16);
+      }
+      function cancel() { clearTimeout(timer); document.removeEventListener("pointermove", onMove); document.removeEventListener("pointerup", onUp); document.removeEventListener("pointercancel", onUp); }
+      function onUp() {
+        cancel(); clearInterval(scrollT);
+        if (!started) return;
+        var gr = gap.getBoundingClientRect(), from = r.getBoundingClientRect().top;
+        list.insertBefore(r, gap); gap.remove();
+        r.classList.remove("lifted"); r.style.width = r.style.left = r.style.top = "";
+        if (!reduce) { r.style.transition = "none"; r.style.transform = "translateY(" + (from - r.getBoundingClientRect().top) + "px)"; requestAnimationFrame(function () { r.style.transition = "transform 280ms var(--ease-out)"; r.style.transform = ""; }); }
+        renumber(); haptic("tick");
+        live.textContent = "Moved to position " + (rows().indexOf(r) + 1);
+        setTimeout(function () { r._dragged = false; }, 50);
+        void gr;
+      }
+      if (!viaHandle) timer = setTimeout(begin, 250);
+      document.addEventListener("pointermove", onMove, { passive: false }); document.addEventListener("pointerup", onUp); document.addEventListener("pointercancel", onUp);
+    });
+    function check() {
+      if (finished) return;
+      finished = true; select(null);
+      var rs = rows(), wrongIdx = [];
+      rs.forEach(function (x, k) {
+        var ok = +x.dataset.i === k;
+        x.classList.add(ok ? "right" : "wrongpos");
+        if (!ok) { wrongIdx.push(k); x.querySelector(".dl-goes").textContent = "goes " + ordinal(+x.dataset.i + 1); }
+      });
+      list.classList.add("solved");
+      var allRight = !wrongIdx.length;
+      var answer = card.steps.map(function (t) { return t.length > 22 ? t.slice(0, 20).replace(/\s+\S*$/, "") + "\u2026" : t; }).join(" \u2192 ");
+      var rv = allRight ? null : ctx.missed(card, {});
+      if (card.reviewId) ctx.reviewAnswer(card.reviewId, allRight);
+      ctx.complete({ xp: allRight ? X.interactivePerfect : 0, perfect: allRight, correct: allRight, detail: { order: rs.map(function (x) { return +x.dataset.i; }) } });
+      ctx.setFoot(null);
+      var swapped = wrongIdx.length === 2;
+      Sheet.show(allRight
+        ? { kind: "success", headline: "In order", xp: X.interactivePerfect, body: card.why || ("First " + card.steps[0].toLowerCase() + ", last " + card.steps[card.steps.length - 1].toLowerCase() + "."), onClose: ctx.advance }
+        : { kind: "wrong", headline: swapped ? "Close. Two steps swapped" : "Not quite", answer: answer, why: card.why || "", review: !!rv, onClose: ctx.advance });
+    }
+    renumber();
+    var sv = ctx.saved && ctx.saved.done && ctx.saved.result;
+    if (sv) {
+      var ord = sv.detail && sv.detail.order;
+      if (ord) ord.forEach(function (i) { list.appendChild(list.querySelector('[data-i="' + i + '"]')); });
+      renumber(); finished = true; list.classList.add("solved");
+      rows().forEach(function (x, k) { var ok = +x.dataset.i === k; x.classList.add(ok ? "right" : "wrongpos"); if (!ok) x.querySelector(".dl-goes").textContent = "goes " + ordinal(+x.dataset.i + 1); });
+    } else ctx.setFoot({ label: "Check order", style: "primary", enabled: true, onClick: check });
   };
 
-  global.DLCards = { TYPES: TYPES, validateCard: validateCard, validateQuiz: validateQuiz, normalizeTopic: normalizeTopic, render: render, shuffle: shuffle };
+  global.DLSheet = Sheet;
+  global.DLHaptic = haptic;
+
+  global.DLCards = { TYPES: TYPES, sheet: Sheet, validateCard: validateCard, validateQuiz: validateQuiz, normalizeTopic: normalizeTopic, render: render, shuffle: shuffle };
 })(window);

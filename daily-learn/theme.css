@@ -1,4 +1,4 @@
-/* Daily Learn v2 theme — Remy "Lamplight" tokens (from daily-learn-art/tokens.css), plus app aliases. */
+/* Daily Learn theme: Remy "Lamplight" tokens (daily-learn-art/tokens.css, round 2), plus app aliases. */
 :root, [data-theme="light"] {
   --bg: #F6F4EF;
   --surface: #FFFFFF;
@@ -17,6 +17,7 @@
   --success: #2E9E6A;
   --success-ink: #1D7A4F;
   --success-soft: #E1F5EA;
+  --on-success: #FFFFFF;
   --error: #D64545;
   --error-ink: #B83232;
   --error-soft: #FBE6E4;
@@ -94,6 +95,7 @@
   --success: #4CC38A;
   --success-ink: #4CC38A;
   --success-soft: #16302A;
+  --on-success: #0E2219;
   --error: #F27272;
   --error-ink: #F27272;
   --error-soft: #3A1E24;
@@ -150,6 +152,7 @@
   --success: #4CC38A;
   --success-ink: #4CC38A;
   --success-soft: #16302A;
+  --on-success: #0E2219;
   --error: #F27272;
   --error-ink: #F27272;
   --error-soft: #3A1E24;
@@ -209,5 +212,6 @@
   --trail-done: color-mix(in srgb, var(--primary) 28%, transparent);
   --trail-todo: var(--line);
 }
-[data-theme="dark"] { --trail-todo: #3A3E57; } /* Remy: dark trail line was too faint, bumped slightly */
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --trail-todo: #3A3E57; } }
+/* Remy round 2: stronger dark trail (done 50% primary; upcoming #4A4F6B, 7 wide) */
+[data-theme="dark"] { --trail-todo: #4A4F6B; --trail-todo-w: 7; --trail-done: color-mix(in srgb, var(--primary) 50%, transparent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --trail-todo: #4A4F6B; --trail-todo-w: 7; --trail-done: color-mix(in srgb, var(--primary) 50%, transparent); } }

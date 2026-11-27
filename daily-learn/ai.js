@@ -24,10 +24,10 @@
           scene: { kind: "transform", title: "optional", particle: "optional emoji that travels",
             items: [{ label: "Sunlight", icon: "\u2600\uFE0F", role: "in", tone: "input" }, { label: "Leaf", icon: "\uD83C\uDF3F", role: "process", tone: "highlight" }, { label: "Sugar", shape: "seed", role: "out", tone: "output" }],
             steps: [{ caption: "Sunlight hits the leaf" }, { caption: "The leaf works like a tiny kitchen" }, { caption: "Out comes sugar food" }] } },
-        { type: "reveal", prompt: "Think of it like\u2026", reveal: "a friendly metaphor" },
+        { type: "reveal", title: "What is X really like?", prompt: "Think of X like\u2026", reveal: "a friendly metaphor", shape: "lightbulb" },
         { type: "match", prompt: "Match each term", pairs: [{ term: "term", meaning: "short meaning" }] },
-        { type: "swipe", prompt: "True or false?", statements: [{ text: "statement", answer: true, why: "short reason" }] },
-        { type: "order", prompt: "Put the steps in order", steps: ["first", "second", "third"] },
+        { type: "swipe", prompt: "True or false?", statements: [{ text: "statement", answer: true, why: "short reason", shape: "clock" }] },
+        { type: "order", prompt: "Put the steps in order", steps: ["first", "second", "third"], why: "one sentence on why this order" },
         { type: "text", text: "short explanation", example: "concrete example" },
         { type: "quiz", q: "question", choices: ["a", "b", "c", "d"], correct: 0, why: "short why" }
       ]
@@ -64,9 +64,9 @@
       "- Use \"explain\" in at least 2 sections, using at least 2 DIFFERENT scene kinds across the lesson; don't make every scene a flow \u2014 pick the kind that matches the idea (numbers -> bars, change -> morph, dates -> timeline, layers -> stack, causes -> chain, loops -> cycle, ingredients -> transform). Prefer 4 items when the idea allows. For flow and cycle set particle to the thing that travels. Only use \"text\" when nothing can be animated.",
       "- Use each of match, swipe and order at least once across the lesson. reveal is for the metaphor.",
       "- Scene kinds:\n  " + KIND_GUIDE.join("\n  "),
-      "- Scene items: label max 3 words (max 14 characters for flow/morph/transform), sub optional (max 20 chars). Give each item EITHER shape (one of: coin, coin_single, circle, box, pill, person, document, gear, database, cloud, lightbulb, clock, book, server, globe, phone, seed) when it fits, OR icon = ONE emoji. Optional tone from: neutral|highlight|input|output|good|bad|emphasis (meaning roles, not colours: input = things going in, output = results, good/bad = right/wrong or healthy/harmful, highlight = the ONE key thing, emphasis = the ONE moment to notice). Use highlight at most once and emphasis at most once per scene. Colour is never the only cue: the label must say what it is.",
+      "- Scene items: label max 3 words (max 14 characters for flow/morph/transform), sub optional (max 20 chars). Give each item a shape from this list whenever one fits (it matches the app's drawing style): coin, coin_single, circle, box, pill, person, document, gear, database, cloud, lightbulb, clock, book, server, globe, phone, seed. Only when none of them fits, use icon = ONE emoji instead. Optional tone from: neutral|highlight|input|output|good|bad|emphasis (meaning roles, not colours: input = things going in, output = results, good/bad = right/wrong or healthy/harmful, highlight = the ONE key thing, emphasis = the ONE moment to notice). Use highlight at most once and emphasis at most once per scene. Colour is never the only cue: the label must say what it is.",
       "- scene.steps is REQUIRED: 3-5 steps, each caption ONE sentence, max 110 characters, in the order the animation reveals items (step 1 shows the first item(s)). The learner taps Next for each step, so each caption should explain exactly what just appeared.",
-      "- match: 3-4 pairs (term max 3 words, meaning max 10 words). swipe: 3 statements mixing true and false. order: 3-5 short steps given in the CORRECT order (the app shuffles them).",
+      "- match: 3-4 pairs (term max 3 words, meaning max 10 words). swipe: 3 statements mixing true and false. order: 3-5 short steps given in the CORRECT order (the app shuffles them) plus why (one sentence). reveal and each swipe statement may take an optional shape from the same list. Every quiz, swipe statement and order needs a short why: wrong answers show it kindly and save the question for Review later.",
       "- quiz: 4 choices, correct = 0-based index of the right choice; vary which index is correct.",
       "- boss: 4 quiz questions covering all sections, slightly harder, correct index varied.",
       avoid.length ? "- Do NOT repeat any of these past topics (pick something clearly different):\n  - " + avoid.join("\n  - ") : ""

@@ -72,3 +72,22 @@
 @media (prefers-reduced-motion: reduce) {
   .ak-el, .ak-el > *, .ak-morph-a, .ak-morph-b, .ak-line { animation: none !important; transition: none !important; }
 }
+
+/* 4b · lesson step controls (Remy round 2) */
+.ak-stage { position: relative; outline: none; -webkit-tap-highlight-color: transparent; }
+.ak-stage:focus-visible { box-shadow: 0 0 0 3px var(--primary), var(--shadow-2); }
+.ak-hint { position: absolute; right: 12px; top: 12px; height: 26px; padding: 0 8px 0 10px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font: 600 12px/26px var(--font-ui); display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity 180ms var(--ease-out); pointer-events: none; }
+.ak-hint.ak-hint-bottom { top: auto; bottom: 12px; }
+.ak-hint.on { opacity: 1; }
+.ak-hint svg { animation: akHintNudge 1.6s var(--ease-in-out) infinite; }
+.ak-hint.last svg { display: none; }
+@keyframes akHintNudge { 50% { transform: translateX(3px); } }
+.ak-controls { gap: 8px; }
+.ak-btn { height: 44px; padding: 0 14px; }
+.ak-btn:disabled { color: var(--ink3); cursor: default; opacity: .7; }
+.ak-mid { display: flex; align-items: center; gap: 8px; }
+.ak-steptxt { font: 600 12px var(--font-ui); color: var(--ink3); white-space: nowrap; }
+.ak-dot-btn { cursor: default; }
+.ak-dot-btn.on { opacity: 1; }
+.ak-snap *, .ak-snap { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .ak-hint svg { animation: none; } }

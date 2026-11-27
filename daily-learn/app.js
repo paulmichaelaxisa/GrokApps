@@ -150,7 +150,9 @@
 
   function nodeCount() { return S.topic.sections.length + 1; }
   function isBoss(n) { return n === S.topic.sections.length; }
-  function nodeCards(n) { return isBoss(n) ? S.topic.boss : S.topic.sections[n].cards; }
+  function nodeCards(n) { return isBoss(n) ? (S.bossDeck || S.topic.boss) : S.topic.sections[n].cards; }
+  // Boss deck = up to 40% Review-later items + the topic's own boss questions. Built once per boss attempt, saved in the session.
+  function buildBossDeck() { S.bossDeck = window.DLReview ? window.DLReview.bossDeck(S.topic, S.topic.boss) : S.topic.boss.slice(); }
   function unlocked(n) { return n === 0 || S.nodeDone[n - 1]; }
   function currentNode() { for (var i = 0; i < nodeCount(); i++) if (!S.nodeDone[i]) return i; return nodeCount() - 1; }
 
@@ -198,7 +200,10 @@
     setTimeout(function () { t.remove(); }, 1300);
   }
   var levelQueue = [];
-  function showLevelUp(level) {
+  function showLevelUp(level, settled) {
+    // XP lands just before the feedback sheet opens: give the sheet a beat, then wait for it to be dismissed
+    if (!settled) { setTimeout(function () { showLevelUp(level, true); }, 80); return; }
+    if (window.DLSheet && window.DLSheet.open) { setTimeout(function () { showLevelUp(level, true); }, 350); return; }
     var ov = $("#levelUp"), T = (window.DL_THEME || {}).levelUpSheet;
     $("#levelUpNum").textContent = level;
     $("#levelUpNum2").textContent = level;
@@ -230,11 +235,26 @@
 
   function badgeArt(b, earned) {
     var T = window.DL_THEME;
-    if (T && T.badge) { var img = h("img", "badge-img"); img.src = T.badge(b.id, earned); img.alt = ""; return img; }
+    if (T && T.badge) { var img = h("img", "badge-img"); img.src = T.badge(b.id, earned, isDark()); img.alt = ""; return img; }
     return h("span", "badge-emoji", "\uD83C\uDFC5");
   }
 
+  function renderReview() {
+    var box = $("#reviewCard"); if (!box || !window.DLReview) return;
+    var n = window.DLReview.count();
+    box.hidden = n === 0;
+    $("#reviewCount").textContent = n + (n === 1 ? " question" : " questions");
+    $("#reviewText").textContent = "Saved from wrong answers. Up to 40% of your next boss quiz comes from here; each one clears after " + window.DLReview.CLEAR_AFTER + " right answers.";
+    var ul = $("#reviewList"); ul.innerHTML = "";
+    window.DLReview.list().slice(-5).reverse().forEach(function (it) {
+      var q = it.card.type === "order" ? it.card.prompt : it.card.q;
+      var li = h("li", null, q);
+      if (it.rights) li.appendChild(h("span", "meta", " \u00b7 " + it.rights + " of " + window.DLReview.CLEAR_AFTER + " right"));
+      ul.appendChild(li);
+    });
+  }
   function renderBadges() {
+    renderReview();
     var box = $("#badges");
     box.innerHTML = "";
     G.BADGES.forEach(function (b) {
@@ -321,6 +341,8 @@
         lab.style.top = pts[j][1] + "px";
         if (side === "right") lab.style.left = (pts[j][0] + 50) + "px"; else lab.style.right = (W - pts[j][0] + 50) + "px";
         lab.appendChild(h("strong", null, boss ? "Boss quiz" : S.topic.sections[j].title));
+        var rvN = boss && window.DLReview ? Math.min(window.DLReview.count(), Math.max(1, Math.floor(S.topic.boss.length * 0.4))) : 0;
+        if (rvN && !done) lab.appendChild(h("span", "review-hint", rvN + " from Review later"));
         lab.appendChild(h("span", null, boss ? nodeCards(j).length + " questions \u00b7 +" + (nodeCards(j).length * G.XP.bossCorrect + G.XP.topicDone) + " XP" : (done ? "Done \u00b7 tap to replay" : nodeCards(j).length + " cards")));
         map.appendChild(lab);
       }
@@ -360,6 +382,7 @@
 
   // ---------- play ----------
   var active = null; // card api
+  var footOverride = null; // a card can take over the bottom button (Reveal / Next step / Check)
   function cardKey(n, c) { return n + "-" + c; }
   function enterNode(n) {
     if (!unlocked(n)) return;
@@ -367,8 +390,9 @@
       // replay a finished node: no XP for repeats
       Object.keys(S.cards).forEach(function (k) { if (k.indexOf(n + "-") === 0) delete S.cards[k]; });
       S.replay = true; S.card = 0;
-      if (isBoss(n)) S.bossScore = 0;
+      if (isBoss(n)) { S.bossScore = 0; buildBossDeck(); }
     } else if (S.node !== n) { S.card = 0; S.replay = false; }
+    if (isBoss(n) && !S.bossDeck) buildBossDeck();
     S.node = n; S.mode = "play";
     saveSession();
     renderCard();
@@ -393,13 +417,30 @@
     });
     var saved = S.cards[cardKey(n, idx)] || null;
     var next = $("#nextCardBtn");
-    next.disabled = !(saved && saved.done);
-    next.textContent = idx === cards.length - 1 ? (boss ? "Finish boss" : "Finish part") : "Continue";
+    var defLabel = idx === cards.length - 1 ? (boss ? "Finish boss" : "Finish part") : "Continue";
+    var cardDone = !!(saved && saved.done);
+    footOverride = null;
+    function setFoot(o) {
+      footOverride = o && o.onClick ? o : null;
+      next.classList.toggle("btn-outline", !!(o && o.style === "outline"));
+      if (o) { next.textContent = o.label; next.disabled = !o.enabled; }
+      else { next.textContent = defLabel; next.disabled = !cardDone; }
+    }
+    setFoot(null);
     var host = $("#cardHost");
     host.classList.remove("card-enter"); void host.offsetWidth; host.classList.add("card-enter");
     active = C.render(card, host, {
       mode: boss ? "boss" : "lesson",
       saved: saved,
+      setFoot: setFoot,
+      advance: function () { if (S.node === n && S.card === idx && $("#screen-play").classList.contains("active")) nextCard(); },
+      // wrong answer -> Review later (not during replays of finished nodes)
+      missed: function (c, detail) {
+        if (!window.DLReview || S.replay) return null;
+        if (c.reviewId) return { id: c.reviewId }; // already on the list; reviewAnswer() resets its count
+        var it = window.DLReview.add(S.topic, c, detail); renderReview(); return it;
+      },
+      reviewAnswer: function (id, ok) { if (window.DLReview && !S.replay) { var r = window.DLReview.answer(id, ok); if (r && r.cleared) toast("Cleared from Review later"); } },
       complete: function (result) {
         var k = cardKey(n, idx);
         if (S.cards[k] && S.cards[k].done) return;
@@ -407,7 +448,8 @@
         if (boss && result.correct) S.bossScore = (S.bossScore || 0) + 1;
         if (!S.replay && result.xp) award(result.xp, card.type);
         saveSession();
-        next.disabled = false;
+        cardDone = true;
+        if (!footOverride) next.disabled = false;
         var segs = prog.children; if (segs[idx]) segs[idx].className = "done cur";
       }
     });
@@ -442,7 +484,7 @@
     showScreen("screen-home");
   }
   function finishTopic(repeat) {
-    var total = S.topic.boss.length, score = S.bossScore || 0, perfect = score === total;
+    var total = nodeCards(S.topic.sections.length).length, score = S.bossScore || 0, perfect = score === total;
     collectingBadges = [];
     if (!repeat) {
       if (perfect) { award(G.XP.bossPerfectBonus, "perfect boss"); G.bump("perfectBosses", 1); G.bump("topicsMastered", 1); }
@@ -581,8 +623,9 @@
     $("#themeSelect").addEventListener("change", function (e) { try { localStorage.setItem("daily-learn-theme", e.target.value); } catch (er) {} applyTheme(); if (S) renderMap(); });
     try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () { applyTheme(); if (S && $("#screen-home").classList.contains("active")) renderMap(); }); } catch (e) {}
     window.addEventListener("resize", function () { if (S && $("#screen-home").classList.contains("active")) renderMap(); });
-    $("#nextCardBtn").addEventListener("click", nextCard);
+    $("#nextCardBtn").addEventListener("click", function () { if (footOverride && footOverride.onClick) footOverride.onClick(); else nextCard(); });
     $("#exitPlay").addEventListener("click", function () {
+      if (window.DLSheet) window.DLSheet.close(false);
       if (active && active.destroy) active.destroy();
       S.mode = "map"; saveSession(); renderMap(); showScreen("screen-home");
     });

@@ -142,7 +142,8 @@
     "\uD83D\uDCD6": "book", "\uD83D\uDCDA": "book", "\uD83D\uDCD5": "book", "\uD83D\uDDA5": "server", "\uD83D\uDCBB": "server",
     "\uD83C\uDF0D": "globe", "\uD83C\uDF0E": "globe", "\uD83C\uDF0F": "globe", "\uD83C\uDF10": "globe",
     "\uD83D\uDCF1": "phone", "\u2601": "cloud", "\uD83C\uDF31": "seed", "\uD83D\uDCB0": "coin", "\uD83E\uDE99": "coin_single",
-    "\uD83D\uDC64": "person", "\uD83E\uDDD1": "person", "\uD83D\uDC69": "person", "\uD83D\uDC68": "person", "\uD83D\uDDC4": "database", "\uD83D\uDCBE": "database", "\uD83D\uDCE6": "box"
+    "\uD83D\uDC64": "person", "\uD83E\uDDD1": "person", "\uD83D\uDC69": "person", "\uD83D\uDC68": "person", "\uD83D\uDDC4": "database", "\uD83D\uDCBE": "database", "\uD83D\uDCE6": "box",
+    "\uD83D\uDCD1": "document", "\uD83E\uDDFE": "document", "\uD83D\uDCCB": "document", "\u2709": "document", "\uD83D\uDCE8": "document", "\uD83D\uDDC2": "document", "\uD83D\uDCC1": "document", "\uD83D\uDCC2": "document", "\uD83D\uDCD7": "book", "\uD83D\uDCD8": "book", "\uD83D\uDCD9": "book", "\uD83D\uDCD3": "book", "\uD83D\uDCD4": "book", "\uD83D\uDCD2": "book", "\uD83D\uDD27": "gear", "\uD83D\uDEE0": "gear", "\uD83D\uDD29": "gear", "\u23F3": "clock", "\u23F2": "clock", "\uD83D\uDD50": "clock", "\uD83D\uDCC5": "clock", "\uD83D\uDDD3": "clock", "\uD83C\uDF27": "cloud", "\u26C5": "cloud", "\uD83C\uDF25": "cloud", "\uD83C\uDF26": "cloud", "\uD83C\uDF2B": "cloud", "\uD83C\uDF30": "seed", "\uD83E\uDED8": "seed", "\uD83C\uDF3E": "seed", "\uD83D\uDCB5": "coin_single", "\uD83D\uDCB2": "coin_single", "\uD83D\uDCB8": "coin_single", "\uD83D\uDCB3": "coin_single", "\uD83D\uDC65": "person", "\uD83D\uDC76": "person", "\uD83E\uDDD2": "person", "\uD83D\uDC67": "person", "\uD83D\uDC66": "person", "\uD83E\uDDD3": "person", "\uD83D\uDC74": "person", "\uD83D\uDC75": "person", "\uD83D\uDE4B": "person", "\uD83E\uDDCD": "person", "\uD83D\uDC64": "person", "\u2328": "server", "\uD83D\uDDB1": "server", "\uD83D\uDCF2": "phone", "\uD83D\uDCDE": "phone", "\u260E": "phone", "\uD83D\uDDC3": "database", "\uD83D\uDCBF": "database", "\uD83D\uDCC0": "database", "\uD83C\uDF81": "box", "\uD83D\uDDF3": "box", "\uD83E\uDDF1": "box", "\uD83D\uDD35": "circle", "\u26AA": "circle", "\uD83D\uDFE3": "circle", "\u2B55": "circle", "\uD83D\uDC8A": "pill", "\uD83E\uDDE0": "lightbulb", "\uD83D\uDD26": "lightbulb", "\uD83C\uDF10": "globe", "\uD83D\uDDFA": "globe"
   };
   function assignTones(scene) {
     var it = scene.items, n = it.length, k = scene.kind;
@@ -481,11 +482,21 @@
     host.innerHTML = "";
     host.classList.add("ak-player");
     if (reduce) host.classList.add("ak-reduce");
+    var lesson = opts.mode !== "preview";
     var stageWrap = document.createElement("div");
     stageWrap.className = "ak-stage";
+    if (lesson) {
+      stageWrap.setAttribute("role", "button"); stageWrap.tabIndex = 0;
+      stageWrap.setAttribute("aria-roledescription", "explainer");
+      stageWrap.setAttribute("aria-label", (scene.title || "Animated explanation") + ". Tap or press Enter for the next step, left arrow to go back.");
+    }
     host.appendChild(stageWrap);
+    var hint = document.createElement("div");
+    hint.className = "ak-hint"; hint.setAttribute("aria-hidden", "true");
+    hint.innerHTML = '<span class="ak-hint-t">Tap to continue</span><svg viewBox="0 0 12 12" width="12" height="12"><path d="M4 2.5 L7.5 6 L4 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     var svg = el("svg", { viewBox: "0 0 " + W + " " + H, "class": "ak-svg ak-kind-" + scene.kind, role: "img", "aria-label": scene.title || "Animated explanation" });
     stageWrap.appendChild(svg);
+    if (lesson) stageWrap.appendChild(hint);
     var defs = el("defs", {}, svg);
     var mk = el("marker", { id: "ak-head", viewBox: "0 0 12 14", refX: 10, refY: 7, markerWidth: 12, markerHeight: 14, markerUnits: "userSpaceOnUse", orient: "auto-start-reverse" }, defs);
     el("path", { d: "M1 1 L10 7 L1 13", "class": "ak-head", fill: "none" }, mk);
@@ -503,15 +514,16 @@
     var ctrl = document.createElement("div");
     ctrl.className = "ak-controls";
     ctrl.innerHTML =
-      '<button type="button" class="ak-btn ak-replay" data-a="replay" aria-label="Replay"><span aria-hidden="true">\u21BB</span> Replay</button>' +
-      '<div class="ak-dots"></div>' +
-      '<button type="button" class="ak-btn ak-next" data-a="next"><span class="ak-steptxt"></span></button>';
+      '<button type="button" class="ak-btn ak-back" data-a="back" aria-label="Back one step"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M8 2.5 L4.5 6 L8 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Back</button>' +
+      '<div class="ak-mid"><div class="ak-dots"></div><span class="ak-steptxt"></span></div>' +
+      '<button type="button" class="ak-btn ak-replay" data-a="replay" aria-label="Replay this step"><span aria-hidden="true">\u21BB</span> Replay</button>';
     host.appendChild(ctrl);
     var dots = ctrl.querySelector(".ak-dots");
     scene.steps.forEach(function (_, i) {
       var d = document.createElement("button");
       d.type = "button"; d.className = "ak-dot-btn"; d.setAttribute("aria-label", "Step " + (i + 1));
-      d.addEventListener("click", function () { stop(); go(i, true); });
+      d.tabIndex = -1;
+      d.addEventListener("click", function (e) { e.stopPropagation(); stop(); jump(i); });
       dots.appendChild(d);
     });
 
@@ -519,6 +531,8 @@
     var stepBeats = scene.steps.map(function (_, k) { return Math.min(B, Math.ceil((k + 1) * B / S)); });
     if (scene.kind === "morph") stepBeats = scene.steps.map(function (_, k) { return S === 1 ? 2 : (k < Math.ceil(S / 2) ? 1 : 2); });
     var shown = 0, cur = -1, timer = null, raf = null, playing = false, destroyed = false, particles = [], finished = false;
+    var gen = 0, stepEnd = 0, hintTimer = null;
+    var STEP_MS = reduce ? 0 : (scene.kind === "bars" || scene.kind === "morph" ? 1000 : 1150);
     var durations = scene.steps.map(function (s) { return Math.max(1200, Math.min(2600, 500 + s.caption.length * 38)); });
     var total = durations.reduce(function (a, b) { return a + b; }, 0);
     var scale = total < 3000 ? 3000 / total : (total > 8000 ? 8000 / total : 1);
@@ -543,8 +557,9 @@
       if (b.bar) { b.bar.rect.setAttribute("height", 0); b.bar.rect.setAttribute("y", b.bar.base); b.bar.val.textContent = fmtValue(0, scene); b.bar.val.setAttribute("y", b.bar.base - 6); }
     }
     function tween(bar, animate) {
-      var dur = animate && !reduce ? 900 : 0, t0 = performance.now();
+      var dur = animate && !reduce ? 900 : 0, t0 = performance.now(), g0 = gen;
       function f(now) {
+        if (g0 !== gen && dur) return;
         var t = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - t, 3);
         var h = bar.h * e;
         bar.rect.setAttribute("height", h); bar.rect.setAttribute("y", bar.base - h);
@@ -562,8 +577,9 @@
       m.c2.classList.toggle("on", state === 1);
       if (m.gauge) {
         var from = parseFloat(m.gauge.fill.getAttribute("width")), to = state === 1 ? m.gauge.to : m.gauge.from;
-        var dur = animate && !reduce ? 900 : 0, t0 = performance.now();
+        var dur = animate && !reduce ? 900 : 0, t0 = performance.now(), g0 = gen;
         var f = function (now) {
+          if (g0 !== gen && dur) return;
           var t = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - t, 3);
           m.gauge.fill.setAttribute("width", from + (to - from) * e);
           if (t < 1 && !destroyed) requestAnimationFrame(f);
@@ -580,8 +596,9 @@
       var target = null;
       for (var i = b.els.length - 1; i >= 0; i--) { if (!b.els[i].classList.contains("ak-arrow")) { target = b.els[i]; break; } }
       if (!target) return;
+      var g0 = gen;
       setTimeout(function () {
-        if (destroyed) return;
+        if (destroyed || g0 !== gen) return;
         target.classList.remove("ak-emph"); void target.getBBox; target.classList.add("ak-emph");
       }, 380);
     }
@@ -605,8 +622,9 @@
       m.setAttribute("transform", "translate(" + pt.x + " " + pt.y + ")"); m._p = p;
     }
     function moveMarker(p) {
-      var m = ensureMarker(), from = m._p, t0 = performance.now(), dur = 800;
+      var m = ensureMarker(), from = m._p, t0 = performance.now(), dur = 800, g0 = gen;
       var f = function (now) {
+        if (g0 !== gen) return;
         var t = Math.min(1, (now - t0) / dur), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
         placeMarker(from + (p - from) * e);
         if (t < 1 && !destroyed) requestAnimationFrame(f);
@@ -676,15 +694,69 @@
       cap.textContent = scene.steps[k].caption;
       cap.classList.remove("ak-cap-in"); void cap.offsetWidth; cap.classList.add("ak-cap-in");
       Array.prototype.forEach.call(dots.children, function (d, i) { d.classList.toggle("on", i <= k); d.classList.toggle("cur", i === k); });
-      var nb = ctrl.querySelector('[data-a="next"]');
-      nb.disabled = k === S - 1;
-      nb.querySelector(".ak-steptxt").textContent = k === S - 1 ? ("Step " + S + " of " + S) : ("Next step \u203A");
-      nb.setAttribute("aria-label", "Step " + (k + 1) + " of " + S + (k < S - 1 ? ", next step" : ""));
+      ctrl.querySelector(".ak-steptxt").textContent = "Step " + (k + 1) + " of " + S;
+      ctrl.querySelector('[data-a="back"]').disabled = k === 0;
+      stepEnd = animate && !reduce ? performance.now() + STEP_MS : 0;
+      showHint(animate ? STEP_MS : 0);
+      if (opts.onStep) opts.onStep({ index: k, count: S, done: !animate || reduce, last: k === S - 1 });
       if (k === S - 1 && !finished) {
         finished = true;
         setTimeout(function () { if (!destroyed && cur === S - 1) startAmbient(); }, 900);
         if (opts.onComplete) opts.onComplete();
       }
+    }
+    // ---- lesson mode (Remy's player.js semantics): tap = next, tap mid-step = skip to its end, back, replayStep ----
+    function stripAnim() {
+      gen++; clearParticles();
+      Array.prototype.forEach.call(svg.querySelectorAll(".ak-in,.ak-emph,.ak-nudge,.ak-spin,.ak-morph-in"), function (e) {
+        e.classList.remove("ak-in", "ak-emph", "ak-nudge", "ak-spin", "ak-morph-in");
+      });
+      host.classList.add("ak-snap");
+      requestAnimationFrame(function () { requestAnimationFrame(function () { host.classList.remove("ak-snap"); }); });
+    }
+    function rewindTo(k) { // instant end state of step k (k = -1 -> empty)
+      var target = k < 0 ? 0 : stepBeats[k];
+      if (scene.kind === "morph") { setMorph(target === 2 ? 1 : 0, false); }
+      else {
+        for (var i = shown - 1; i >= 0; i--) hide(beats[i]);
+        shown = 0;
+        for (var j = 0; j < target; j++) reveal(beats[j], false);
+        shown = target;
+      }
+    }
+    function snapStep() { var k = cur; stripAnim(); rewindTo(k); stepEnd = 0; showHint(0); if (opts.onStep) opts.onStep({ index: k, count: S, done: true, last: k === S - 1 }); }
+    function jump(k) { if (k === cur) return; stripAnim(); if (k < cur) { rewindTo(k); cur = k - 1 < -1 ? -1 : k; go(k, false); } else { rewindTo(k - 1); go(k, true); } }
+    function back() { stop(); if (cur <= 0) return; stripAnim(); rewindTo(cur - 1); go(cur - 1, false); }
+    function replayStep() { stop(); var k = cur; stripAnim(); rewindTo(k - 1); if (k === 0) { shown = 0; } cur = k - 1; go(k, true); }
+    function next() {
+      if (stepEnd && performance.now() < stepEnd) { stop(); snapStep(); return "skipped"; }
+      stop();
+      if (cur < S - 1) { go(cur + 1, true); return "next"; }
+      if (opts.onDone) opts.onDone();
+      return "done";
+    }
+    function showHint(delay) {
+      if (!lesson) return;
+      clearTimeout(hintTimer);
+      hint.classList.remove("on");
+      hintTimer = setTimeout(function () {
+        if (destroyed) return;
+        placeHint();
+        hint.querySelector(".ak-hint-t").textContent = cur === S - 1 ? "Done" : "Tap to continue";
+        hint.classList.toggle("last", cur === S - 1);
+        hint.classList.add("on");
+      }, (delay || 0) + 400);
+    }
+    // keep the hint out of the way: if the scene has content in the top-right corner, dock it bottom-right
+    function placeHint() {
+      var r = stageWrap.getBoundingClientRect(); if (!r.width) return;
+      var zone = { l: r.left + r.width * 0.56, t: r.top, r: r.right, b: r.top + Math.max(46, r.height * 0.2) };
+      var busy = Array.prototype.some.call(svg.querySelectorAll(".ak-el:not(.ak-hidden), .ak-chip, .ak-morph-a, .ak-morph-b"), function (e) {
+        if (e.classList.contains("ak-gone")) return false;
+        var b = e.getBoundingClientRect();
+        return b.width > 0 && b.right > zone.l && b.left < zone.r && b.bottom > zone.t && b.top < zone.b;
+      });
+      hint.classList.toggle("ak-hint-bottom", busy);
     }
     function finishedOff() { finished = false; clearParticles(); }
     function stop() { playing = false; clearTimeout(timer); host.classList.remove("ak-playing"); }
@@ -710,20 +782,38 @@
       var b = e.target.closest("[data-a]");
       if (!b) return;
       var a = b.getAttribute("data-a");
-      if (a === "next") { stop(); go(cur + 1, true); }
-      else if (a === "replay") replay();
+      e.stopPropagation();
+      if (a === "back") back();
+      else if (a === "replay") { if (lesson) replayStep(); else replay(); }
     });
-    stageWrap.addEventListener("click", function () { stop(); if (cur < S - 1) go(cur + 1, true); });
+    stageWrap.addEventListener("click", function () { if (lesson) next(); else { stop(); if (cur < S - 1) go(cur + 1, true); } });
+    if (lesson) stageWrap.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " " || e.key === "ArrowRight") { e.preventDefault(); next(); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); back(); }
+    });
 
     go(0, !reduce);
     if (opts.autoplay === true) play();  // default: tap per step (Remy); autoplay is a setting
 
     return {
-      replay: replay, stop: stop, go: function (k) { stop(); go(k, true); },
+      replay: replay, stop: stop, go: function (k) { stop(); jump(k); },
+      next: next, back: back, replayStep: replayStep, play: play,
+      get index() { return cur; }, get total() { return S; },
       get step() { return cur; }, steps: S,
-      destroy: function () { destroyed = true; stop(); clearParticles(); if (raf) cancelAnimationFrame(raf); }
+      destroy: function () { destroyed = true; stop(); clearTimeout(hintTimer); clearParticles(); if (raf) cancelAnimationFrame(raf); }
     };
   }
 
-  global.DLAnim = { validate: validate, mount: mount, KINDS: Object.keys(KINDS), COLORS: COLORS };
+  // HTML helper for cards: an inline sprite glyph (<svg><use>) tinted by tone role.
+  function shapeSvg(shape, tone, size) {
+    ensureSprite();
+    var t = TONES.indexOf(tone) >= 0 ? tone : "highlight";
+    return '<svg class="dl-glyph" viewBox="0 0 64 64" width="' + (size || 36) + '" height="' + (size || 36) + '" aria-hidden="true" style="--c-s:var(--ex-' + t + ');--c-f:var(--ex-' + t + '-fill)"><use href="#ex-' + shape + '"/></svg>';
+  }
+  function shapeFor(v) {
+    var x = String(v || "").toLowerCase().replace(/^ex-/, "");
+    if (SHAPES.indexOf(x) >= 0) return x;
+    return EMOJI_TO_SHAPE[String(v || "").replace(/\uFE0F/g, "")] || null;
+  }
+  global.DLAnim = { validate: validate, mount: mount, KINDS: Object.keys(KINDS), COLORS: COLORS, SHAPES: SHAPES, shapeSvg: shapeSvg, shapeFor: shapeFor };
 })(typeof window !== "undefined" ? window : this);
