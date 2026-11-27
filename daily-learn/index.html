@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="Daily Learn — unique educational micro-lessons with quizzes, powered by Grok." />
-  <meta name="theme-color" content="#6366f1" />
+  <meta name="description" content="Daily Learn — animated, interactive micro-lessons with XP, levels and badges, powered by Grok." />
+  <meta name="theme-color" content="#F6F4EF" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Daily Learn" />
@@ -13,101 +13,131 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <title>Daily Learn</title>
-  <link rel="stylesheet" href="styles.css" />
+  <script>(function(){try{var t=localStorage.getItem("daily-learn-theme")||"auto";if(t==="auto")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+  <link rel="stylesheet" href="fonts.css?v=2.0.0" />
+  <link rel="stylesheet" href="theme.css?v=2.0.0" />
+  <link rel="stylesheet" href="styles.css?v=2.0.0" />
+  <link rel="stylesheet" href="anim-kit.css?v=2.0.0" />
 </head>
 <body>
   <div class="confetti" id="confetti" aria-hidden="true"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
   <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">📖</div>
-        <span>Daily Learn</span>
+    <header class="top-card" id="topCard">
+      <div class="top-row">
+        <div>
+          <p class="eyebrow">Daily Learn</p>
+          <div class="level-line"><span class="level-title">Level <span id="levelNum">1</span></span><span class="level-name" id="levelName">New spark</span></div>
+        </div>
+        <button type="button" class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
       </div>
-      <div class="topbar-actions">
-        <div class="chip" id="streakChip">🔥 <strong>0</strong> streak</div>
-        <button type="button" class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings">⚙️</button>
+      <div class="xp" id="xpBar">
+        <div class="lv" id="xpLv">1</div>
+        <div class="track"><div class="fill" id="xpFill" style="width:0"></div><div class="xp-pops" id="xpPops" aria-hidden="true"></div></div>
+        <div class="num" id="xpText"><b>0</b> / 60 XP</div>
       </div>
+      <p class="xp-hint" id="xpHint">60 XP to Level 2</p>
     </header>
 
-    <div class="banner" id="offlineBanner" hidden role="status">
-      Using offline topic.
-    </div>
+    <div class="banner" id="offlineBanner" hidden role="status"></div>
 
-    <section class="screen active" id="screen-home" aria-label="Home">
-      <article class="hero-card">
-        <p class="kicker" id="dateLabel">Today</p>
-        <div id="loadingState" class="loading-state" hidden>Thinking up a new topic…</div>
-        <div id="topicBlock">
-          <div class="topic-emoji" id="topicEmoji">✨</div>
-          <h1 id="topicTitle">Today's topic</h1>
-          <p class="blurb" id="topicBlurb">Loading…</p>
-        </div>
-        <div class="stats">
-          <div class="stat"><div class="label">Streak</div><div class="value" id="statStreak">0</div></div>
-          <div class="stat"><div class="label">Days learned</div><div class="value" id="statDone">0</div></div>
-        </div>
-        <button type="button" class="btn btn-primary" id="startBtn" disabled>Start lesson</button>
-        <button type="button" class="btn btn-secondary" id="newTopicBtn">New topic</button>
-        <p class="footer-note" id="homeStatus">Your last lesson is saved · tap New topic for a fresh one</p>
-        <p class="install-hint" id="installHint">Tip: on iPhone, tap Share → Add to Home Screen.</p>
-      </article>
-      <p class="footer-note">Each open invents a fresh lesson with Grok. Curated topics are the offline fallback.</p>
-    </section>
-
-    <section class="screen" id="screen-lesson" aria-label="Lesson">
-      <div class="section-meta">
-        <span id="lessonTopic">Topic</span>
-        <span class="pill" id="lessonStep">Section 1</span>
+    <!-- HOME: topic + path map -->
+    <section class="screen active" id="screen-home" aria-label="Topic map">
+      <div class="loading-card" id="loadingState" hidden>
+        <div class="loader-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p id="loadingMsg">Dreaming up a fresh lesson…</p>
+        <p class="footer-note" id="loadingProgress">Grok usually takes 15–30 seconds.</p>
+        <button type="button" class="btn btn-secondary" id="offlineNowBtn" hidden>Start an offline lesson now</button>
       </div>
-      <div class="progress-rail" id="progressRail" aria-hidden="true"></div>
-      <article class="card">
-        <h2 id="lessonTitle">Section</h2>
-        <div class="block"><h3>🪄 Metaphor</h3><p id="metaphorText"></p></div>
-        <div class="block"><h3>💡 Simple explanation</h3><p id="explainText"></p></div>
-        <div class="block"><h3>📎 Example</h3><p id="exampleText"></p></div>
-        <div class="row">
-          <button type="button" class="btn btn-ghost" id="homeFromLesson">Home</button>
-          <button type="button" class="btn btn-primary" id="toQuizBtn">Quiz me</button>
-        </div>
-      </article>
-    </section>
-
-    <section class="screen" id="screen-quiz" aria-label="Quiz">
-      <div class="section-meta">
-        <span id="quizTopic">Topic</span>
-        <span class="pill" id="quizStep">Quiz 1</span>
+      <div id="homeTopic" hidden>
+        <section class="topic-head">
+          <div>
+            <p class="eyebrow" id="topicEyebrow">Today's topic</p>
+            <h1 class="display" id="topicTitle">Today's topic</h1>
+          </div>
+          <span class="topic-count" id="topicCount">0 / 4</span>
+        </section>
+        <p class="topic-blurb"><span id="topicEmoji" aria-hidden="true"></span> <span id="topicBlurb"></span> <span class="topic-src" id="topicSource"></span></p>
+        <div class="path-map" id="pathMap" aria-label="Lesson path"></div>
+        <button type="button" class="btn btn-primary" id="startBtn" hidden>Start lesson</button>
+        <article class="card new-topic">
+          <label class="field-label" for="subjectInput">Want something else?</label>
+          <div class="new-row">
+            <input type="text" id="subjectInput" class="field-input" placeholder="Learn about… (optional)" autocomplete="off" maxlength="120" />
+            <button type="button" class="btn btn-secondary" id="newTopicBtn">New topic</button>
+          </div>
+        </article>
+        <article class="card badge-card">
+          <div class="card-head"><div><h2>Badges</h2><span class="meta" id="badgeCount">0 of 6 earned</span></div></div>
+          <div class="badges" id="badges"></div>
+        </article>
+        <article class="card" id="historyBlock" hidden>
+          <h2>Past topics</h2>
+          <ul class="history" id="historyList"></ul>
+        </article>
       </div>
-      <article class="card">
-        <p class="kicker">Check understanding</p>
-        <h2 id="quizQuestion">Question</h2>
-        <div class="choices" id="choices" role="group" aria-label="Answer choices"></div>
-        <div class="feedback" id="feedback" role="status"></div>
-        <div class="row">
-          <button type="button" class="btn btn-primary" id="checkBtn" disabled>Check answer</button>
-          <button type="button" class="btn btn-primary" id="nextBtn" hidden>Next section</button>
-        </div>
-      </article>
     </section>
 
-    <section class="screen" id="screen-done" aria-label="Complete">
+    <!-- PLAY: one card at a time -->
+    <section class="screen" id="screen-play" aria-label="Lesson">
+      <div class="play-head">
+        <button type="button" class="icon-btn" id="exitPlay" aria-label="Back to map">✕</button>
+        <div class="play-progress" id="playProgress"></div>
+        <span class="xp-chip" id="playXp">+0 XP</span>
+      </div>
+      <div class="play-titles">
+        <p class="eyebrow" id="playTitle"></p>
+        <span class="play-topic" id="playTopic"></span>
+      </div>
+      <div class="card-host" id="cardHost"></div>
+      <div class="play-foot">
+        <button type="button" class="btn btn-primary" id="nextCardBtn" disabled>Continue</button>
+      </div>
+    </section>
+
+    <!-- DONE -->
+    <section class="screen" id="screen-done" aria-label="Topic complete">
       <article class="card celebrate">
-        <div class="big" id="doneEmoji">🎉</div>
-        <h1 id="doneTitle">Lesson complete!</h1>
+        <img class="done-lumi lumi" id="doneLumi" alt="" hidden /><div class="big" id="doneEmoji">🏆</div>
+        <h1 class="display" id="doneTitle">Topic complete!</h1>
         <p class="blurb" id="doneTopic"></p>
-        <div class="stats" style="text-align:left">
-          <div class="stat"><div class="label">Score</div><div class="value" id="doneScore">0 / 3</div></div>
-          <div class="stat"><div class="label">Streak</div><div class="value" id="doneStreak">🔥 0</div></div>
+        <div class="stats three">
+          <div class="stat"><div class="label">Boss</div><div class="value" id="doneScore">0 / 4</div></div>
+          <div class="stat"><div class="label">XP</div><div class="value" id="doneXp">+0</div></div>
+          <div class="stat"><div class="label">Day streak</div><div class="value" id="doneStreak">0</div></div>
+        </div>
+        <div id="doneBadgesWrap" hidden>
+          <p class="kicker">New badges</p>
+          <div class="badges" id="doneBadges"></div>
         </div>
         <div class="row">
-          <button type="button" class="btn btn-secondary" id="againBtn">Review again</button>
-          <button type="button" class="btn btn-primary" id="backHomeBtn">Home</button>
+          <button type="button" class="btn btn-secondary" id="doneMapBtn">Map</button>
+          <button type="button" class="btn btn-primary" id="doneNewBtn">New topic</button>
         </div>
-        <p class="footer-note">Tap New topic anytime for another lesson. Streaks use Sydney calendar dates.</p>
       </article>
     </section>
   </div>
 
-  <div id="settingsPanel" class="settings-panel" hidden aria-hidden="true">
+  <div class="levelup" id="levelUp" hidden role="dialog" aria-label="Level up" data-theme="dark">
+    <div class="levelup-inner">
+      <p class="eyebrow gold">Level up</p>
+      <div class="lu-stage">
+        <div class="lu-burst" id="luBurst" aria-hidden="true"></div>
+        <div class="lu-disc" id="luDisc"><span id="levelUpNum">2</span></div>
+        <img class="lu-lumi lumi" id="luLumi" alt="" hidden />
+      </div>
+      <div class="lu-title display">Level <span id="levelUpNum2">2</span></div>
+      <p class="lu-sub" id="luSub">You're a Curious mind now.</p>
+      <div class="lu-stats">
+        <div class="lu-stat"><b id="luXp">0</b><span>total XP</span></div>
+        <div class="lu-stat"><b id="luParts">0</b><span>parts done</span></div>
+        <div class="lu-stat"><b id="luBadges">0</b><span>badges</span></div>
+      </div>
+      <button type="button" class="btn btn-primary" id="luKeep">Keep going</button>
+    </div>
+  </div>
+
+  <div id="settingsPanel" class="settings-panel" hidden>
     <div class="settings-backdrop" id="settingsBackdrop"></div>
     <div class="settings-sheet" role="dialog" aria-labelledby="settingsTitle">
       <div class="settings-head">
@@ -116,13 +146,16 @@
       </div>
       <p class="settings-lead">Your xAI key is built in, so nothing to set up. Optionally paste a different key to override it; Clear goes back to the built-in key.</p>
       <label class="field-label" for="apiKeyInput">xAI API key</label>
-      <input type="text" id="apiKeyInput" class="field-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" placeholder="xai-… paste your key" />
+      <input type="text" id="apiKeyInput" class="field-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="xai-… (optional override)" />
       <p class="key-status unset" id="keyStatus">Key not set</p>
       <div class="row settings-actions">
         <button type="button" class="btn btn-secondary" id="settingsClear">Clear</button>
         <button type="button" class="btn btn-primary" id="settingsSave">Save key</button>
       </div>
-      <p class="footer-note"><a href="https://console.x.ai" target="_blank" rel="noopener noreferrer">Get a key at console.x.ai</a></p>
+      <label class="toggle-row"><span><b>Autoplay explainers</b><small>Off: tap through each step</small></span><input type="checkbox" id="autoplayToggle" /></label>
+      <label class="toggle-row"><span><b>Theme</b><small>Paper (light) or ink (dark)</small></span>
+        <select id="themeSelect" class="field-input small"><option value="auto">Auto</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+      <p class="footer-note">Daily Learn 2.0.0</p>
     </div>
   </div>
 
@@ -142,19 +175,15 @@
   <script src="topics/topic-14.js"></script>
   <script src="topics/topic-15.js"></script>
   <script src="topics/topic-16.js"></script>
-  <script src="config.js?v=mem1"></script>
-  <script src="content.js?v=mem1"></script>
-  <script src="ai.js?v=mem1"></script>
-  <script src="app.js?v=mem1"></script>
-  <script>
-    (function () {
-      var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      var standalone = window.navigator.standalone === true;
-      if (isIos && !standalone) {
-        var el = document.getElementById("installHint");
-        if (el) el.classList.add("show");
-      }
-    })();
-  </script>
+  <script src="topics/animated.js?v=2.0.0"></script>
+  <script src="config.js?v=2.0.0"></script>
+  <script src="theme.js?v=2.0.0"></script>
+  <script src="art/ex-sprite.js?v=2.0.0"></script>
+  <script src="content.js?v=2.0.0"></script>
+  <script src="anim-kit.js?v=2.0.0"></script>
+  <script src="game.js?v=2.0.0"></script>
+  <script src="cards.js?v=2.0.0"></script>
+  <script src="ai.js?v=2.0.0"></script>
+  <script src="app.js?v=2.0.0"></script>
 </body>
 </html>

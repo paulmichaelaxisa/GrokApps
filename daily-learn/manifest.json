@@ -1,12 +1,12 @@
 {
   "name": "Daily Learn",
   "short_name": "DailyLearn",
-  "description": "One complex topic a day, taught like you're 10 — with quizzes.",
+  "description": "Animated, interactive micro-lessons with XP, levels and badges.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0b1020",
+  "background_color": "#0d1122",
   "theme_color": "#6366f1",
   "lang": "en",
   "icons": [

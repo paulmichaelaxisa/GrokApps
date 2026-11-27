@@ -1,0 +1,74 @@
+/* Daily Learn explainer kit — Remy's "Lamplight" explainer style (roles, 2.5 pt strokes, open chevrons, calm motion) */
+.ak-player { display: flex; flex-direction: column; gap: 10px; }
+.ak-stage { background: var(--ex-card); border-radius: var(--radius-lg); border: 1px solid var(--line); box-shadow: var(--shadow-2); overflow: hidden; cursor: pointer; padding: 4px 0; }
+.ak-svg { display: block; width: 100%; height: auto; font-family: var(--font-ui); }
+.ak-label { fill: var(--ex-label); }
+.ak-sub, .ak-label.ak-sub { fill: var(--ex-label-2); }
+.ak-date { fill: var(--ex-label-2); }
+.ak-icon { user-select: none; }
+.ak-shape { overflow: visible; }
+.ak-disc, .ak-card { fill: var(--c-f); stroke: var(--c-s); stroke-width: var(--ex-stroke-w); vector-effect: non-scaling-stroke; }
+.ak-dot { fill: var(--c-s); stroke: var(--ex-card); stroke-width: 3; }
+.ak-token { fill: var(--c-s); }
+.ak-tick { stroke: var(--ex-flow); stroke-width: 1.5; stroke-dasharray: 2 4; opacity: .6; }
+.ak-line { stroke: var(--ex-flow); stroke-width: var(--ex-stroke-w); stroke-linecap: round; stroke-linejoin: round; }
+.ak-line.ak-faint { stroke-dasharray: 2 7; }
+.ak-head { stroke: var(--ex-flow); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.ak-axis { stroke: var(--ex-flow); stroke-width: var(--ex-stroke-w); stroke-linecap: round; }
+.ak-track { fill: var(--ex-neutral-fill); }
+.ak-barfill { fill: var(--c-f); stroke: var(--c-s); stroke-width: var(--ex-stroke-w); }
+.ak-val { fill: var(--ex-label); font-variant-numeric: tabular-nums; }
+.ak-marker-disc { fill: var(--ex-highlight); stroke: var(--ex-card); stroke-width: 3; }
+.ak-particle { pointer-events: none; }
+
+/* enter: fade 0->1 + scale .85->1 (spring, 360 ms); arrows draw 700 ms in-out */
+.ak-el { transition: opacity var(--dur-enter) var(--ease-out); }
+.ak-el.ak-hidden { opacity: 0; }
+.ak-pop { transform-box: fill-box; transform-origin: center; }
+.ak-el.ak-in > .ak-pop { animation: akEnter var(--dur-enter) var(--ease-spring); }
+.ak-el.ak-drop.ak-in > .ak-pop { animation: akSlide var(--dur-move) var(--ease-out); }
+.ak-el.ak-fall.ak-in > .ak-pop { animation: akFall var(--dur-move) var(--ease-out); }
+.ak-arrow.ak-in .ak-line { stroke-dasharray: 100; animation: akDraw var(--dur-draw) var(--ease-in-out) forwards; }
+.ak-arrow.ak-in { animation: akHeadIn var(--dur-draw) linear; }
+.ak-el.ak-in .ak-faint { animation: akFade var(--dur-slow) ease; }
+.ak-nudge > .ak-pop { animation: akNudge var(--dur-slow) var(--ease-in-out); }
+.ak-emph > .ak-pop { animation: akEmph var(--dur-emphasis) var(--ease-in-out); }
+.ak-emph > .ak-pop .ak-disc, .ak-emph > .ak-pop .ak-card { animation: akHalo var(--dur-emphasis) var(--ease-in-out); }
+.ak-spin .ak-proc { animation: akHalo var(--dur-emphasis) var(--ease-in-out); }
+.ak-spin .ak-icon { transform-box: fill-box; transform-origin: center; animation: akTurn 1.2s var(--ease-out); }
+@keyframes akEnter { 0% { transform: scale(.85); } 100% { transform: scale(1); } }
+@keyframes akSlide { 0% { transform: translate(-24px, -14px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes akFall { 0% { transform: translateY(-60px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes akDraw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes akHeadIn { 0%, 80% { --x: 0; } }
+@keyframes akFade { from { opacity: 0; } }
+@keyframes akNudge { 40% { transform: translateX(4px); } }
+@keyframes akEmph { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes akHalo { 0%, 100% { filter: none; } 50% { filter: drop-shadow(0 0 4px var(--ex-emphasis)); } }
+@keyframes akTurn { to { transform: rotate(360deg); } }
+
+/* before / after */
+.ak-morph-a, .ak-morph-b { transition: opacity var(--dur-move) var(--ease-out), transform var(--dur-move) var(--ease-in-out); transform-box: fill-box; transform-origin: center; }
+.ak-gone { opacity: 0; transform: scale(.85); }
+.ak-chip rect { fill: var(--surface2); stroke: var(--line); transition: fill var(--dur-base); }
+.ak-chip.on rect { fill: var(--primary); stroke: var(--primary); }
+.ak-chip.on .ak-label { fill: var(--on-primary); }
+
+/* caption + controls */
+.ak-caption { margin: 0; min-height: 2.9em; font: 400 16px/1.45 var(--font-ui); color: var(--ink); padding: 0 6px; }
+.ak-cap-in { animation: akCap 220ms var(--ease-out); }
+@keyframes akCap { from { opacity: 0; } }
+.ak-controls { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.ak-btn { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: var(--radius-pill); height: 36px; cursor: pointer; font: 600 13px var(--font-ui); padding: 0 14px; display: inline-flex; align-items: center; gap: 6px; }
+.ak-next { background: var(--primary-soft); color: var(--primary); border-color: transparent; }
+.ak-next:disabled { background: transparent; color: var(--ink2); cursor: default; }
+.ak-dots { display: flex; gap: 6px; align-items: center; }
+.ak-dot-btn { appearance: none; border: none; width: 8px; height: 8px; border-radius: 999px; background: var(--line); padding: 0; cursor: pointer; transition: width var(--dur-base) var(--ease-out), background var(--dur-base); }
+.ak-dot-btn.on { background: var(--primary); opacity: .45; }
+.ak-dot-btn.cur { width: 22px; opacity: 1; }
+
+.ak-reduce .ak-el, .ak-reduce .ak-morph-a, .ak-reduce .ak-morph-b { transition: none !important; animation: none !important; }
+.ak-reduce .ak-el > * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ak-el, .ak-el > *, .ak-morph-a, .ak-morph-b, .ak-line { animation: none !important; transition: none !important; }
+}
