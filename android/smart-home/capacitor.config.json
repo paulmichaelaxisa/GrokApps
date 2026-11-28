@@ -1,0 +1,6 @@
+{
+  "appId": "com.paulaxisa.smarthome",
+  "appName": "Smart Home",
+  "webDir": "www",
+  "android": { "backgroundColor": "#0F1419", "adjustMarginsForEdgeToEdge": "auto" }
+}

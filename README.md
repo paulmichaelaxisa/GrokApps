@@ -83,3 +83,11 @@ If Pages is enabled for this repo (Deploy from a branch, folder `/` at the root)
 ## License
 
 Content and code in this repo unless noted otherwise. Auslan Signbank videos in Liam Words remain CC BY-NC-ND 4.0, © Auslan Signbank.
+
+### [Smart Home](./smart-home/)
+
+Custom smart-home dashboard. Phase 1 controls a TP-Link HS110 plug straight from the phone over home Wi-Fi (no hub, no cloud): on/off, live watts, daily/monthly kWh with charts, add by discovery or IP. Android only (raw sockets); the web build is a demo.
+
+**Demo preview:** [raw.githack](https://raw.githack.com/paulmichaelaxisa/GrokApps/main/smart-home/index.html?demo=1)
+
+**Android:** package `com.paulaxisa.smarthome` (see [`android/smart-home/`](./android/smart-home/)).

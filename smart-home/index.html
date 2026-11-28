@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Smart Home: control your TP-Link Kasa HS110 smart plug from your phone over home Wi-Fi. No hub, no cloud." />
+  <meta name="theme-color" content="#0F1419" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Smart Home</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app" hidden>
+    <header class="top">
+      <div class="top-text">
+        <h1>Smart Home</h1>
+        <p id="subtitle" class="muted">&nbsp;</p>
+      </div>
+      <button id="btnSettings" class="icon-btn" type="button" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+      </button>
+    </header>
+    <div id="demoBar" class="demo-bar" hidden>Demo mode: simulated plugs, nothing is being controlled. <button id="btnExitDemo" type="button">Exit</button></div>
+    <div id="banner" class="banner" role="status" hidden></div>
+    <section id="summary" class="summary" aria-label="Whole home"></section>
+    <main id="grid" class="grid" aria-label="Devices"></main>
+  </div>
+
+  <!-- Plain web build: raw sockets are impossible in a browser, so explain and offer the demo. -->
+  <section id="notice" class="notice" hidden>
+    <div class="notice-card">
+      <div class="notice-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="64" height="64"><rect x="14" y="8" width="36" height="48" rx="12" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4"/><path d="M32 18v14" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+      </div>
+      <h2>Smart Home needs the Android app</h2>
+      <p>Your plug is controlled directly over your home Wi-Fi, and a web page isn't allowed to do that. Install the Smart Home app on your Android phone to switch it and see live power.</p>
+      <button id="btnDemo" class="btn primary" type="button">Try the demo</button>
+      <p class="muted small">The demo uses simulated plugs so you can see how it will look.</p>
+    </div>
+  </section>
+
+  <div id="layers"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="app.mjs"></script>
+</body>
+</html>
