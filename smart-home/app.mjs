@@ -1,16 +1,17 @@
 // Smart Home: dashboard for TP-Link Kasa HS110 plugs. Phase 1: one device type (hs110), built to hold more.
 import { Hs110Client, describeError, KasaError } from './hs110.mjs';
-import { nativeTransport, unavailableTransport, isNativeAndroid } from './transport.mjs';
+import { nativeTransport, unavailableTransport, isNativeAndroid, capacitorPlugin } from './transport.mjs';
 import { SimPlug, simTransport } from './sim.mjs';
 import { createStore } from './store.mjs';
 import { barChart, sparkline } from './charts.mjs';
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const POLL_MS = 2000;
 const STATS_MS = 60000;
 const HIST_MAX = 90; // ~3 minutes of live readings kept in memory
 
 const $ = (id) => document.getElementById(id);
+const reportError = (m) => (window.__reportError ? window.__reportError(m) : console.error(m));
 const store = createStore();
 const native = isNativeAndroid();
 const params = new URLSearchParams(location.search);
@@ -23,7 +24,7 @@ let plugin = null;
 let transport;
 let demoPlugs = null;
 if (native) {
-  plugin = window.Capacitor.registerPlugin('SmartNet');
+  plugin = capacitorPlugin('SmartNet');
   transport = nativeTransport(plugin);
 } else if (demo) {
   demoPlugs = makeDemoPlugs();
@@ -116,9 +117,9 @@ function applyTheme() {
   const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
   const color = dark ? '#0F1419' : '#F2F4F7';
   document.querySelector('meta[name=theme-color]').setAttribute('content', color);
-  if (plugin && plugin.setChrome) plugin.setChrome({ color, dark }).catch(() => {});
+  if (plugin) { try { plugin.setChrome({ color, dark }).catch(() => {}); } catch (e) { /* cosmetic only */ } }
 }
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) { /* old WebView */ }
 
 // ---- Toast ----------------------------------------------------------------------------------------
 let toastTimer = 0;
@@ -361,7 +362,9 @@ async function localAddrs() {
   addrCache = { at: Date.now(), v: await transport.localAddresses() };
   return addrCache.v;
 }
+let pluginProblem = null;
 function showBanner(text) {
+  text = pluginProblem || text;
   const b = $('banner');
   b.hidden = !text;
   if (text) b.textContent = text;
@@ -636,9 +639,13 @@ function openSettings() {
 }
 
 // ---- Boot -----------------------------------------------------------------------------------------
+function step(name, fn) {
+  try { fn(); } catch (e) { reportError('Startup step "' + name + '" failed: ' + ((e && e.stack) || e)); }
+}
+
 function boot() {
-  applyTheme();
   $('btnSettings').onclick = openSettings;
+  step('theme', applyTheme);
   if (!native && !demo) {
     $('notice').hidden = false;
     $('btnDemo').onclick = () => { store.settings.demo = true; store.saveSettings(); location.search = ''; location.reload(); };
@@ -650,14 +657,24 @@ function boot() {
     $('btnExitDemo').onclick = () => { store.settings.demo = false; store.saveSettings(); location.search = ''; location.reload(); };
     store.devices = DEMO_DEVICES.slice();
   } else {
-    store.loadDevices();
+    step('load devices', () => store.loadDevices());
   }
-  renderGrid();
-  pollAll();
-  rediscoverLoop();
+  step('dashboard', renderGrid);
+  step('polling', () => pollAll());
+  step('rediscovery', rediscoverLoop);
   // refresh "last seen" text
   setInterval(() => store.devices.forEach((x) => liveOf(x.id).status === 'offline' && updateCard(x.id)), 15000);
   if (native && !store.devices.length) setTimeout(() => { if (!store.devices.length && !document.querySelector('.layer')) openAddSheet(); }, 600);
+  if (native) checkPlugin();
+}
+
+// Tell the user (instead of failing silently) if the native network plugin can't be reached.
+function checkPlugin() {
+  transport.localAddresses().then(() => {}, () => {});
+  plugin.localAddresses().catch((e) => {
+    pluginProblem = 'The network part of this app did not load (' + ((e && e.message) || 'unknown') + '). Switching and discovery will not work. Try reinstalling the app.';
+    showBanner(null);
+  });
 }
 
   // Service worker

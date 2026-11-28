@@ -19,9 +19,26 @@ export function isNativeAndroid() {
   return !!(c && typeof c.isNativePlatform === 'function' && c.isNativePlatform());
 }
 
+/**
+ * Handle to a native Capacitor plugin. This app has no bundler, so window.Capacitor is only what Android's
+ * native-bridge.js provides: it has nativePromise(plugin, method, args) but NO registerPlugin (that lives in
+ * @capacitor/core, which isn't bundled). Never throws: a missing plugin just makes each call reject.
+ */
+export function capacitorPlugin(name) {
+  const call = (method, args) => {
+    const C = window.Capacitor;
+    if (C && typeof C.nativePromise === 'function') return C.nativePromise(name, method, args || {});
+    const P = C && C.Plugins && C.Plugins[name];
+    if (P && typeof P[method] === 'function') return P[method](args || {});
+    if (C && typeof C.registerPlugin === 'function') return C.registerPlugin(name)[method](args || {});
+    return Promise.reject(Object.assign(new Error('The native network plugin is not available'), { code: 'native' }));
+  };
+  return new Proxy({}, { get: (_, method) => (typeof method === 'string' && method !== 'then' ? (args) => call(method, args) : undefined) });
+}
+
 /** Raw TCP/UDP through the SmartNet Capacitor plugin (Android only). */
 export function nativeTransport(plugin) {
-  const wrap = (e) => new KasaError(e && e.code ? e.code : 'io', (e && e.message) || 'Network error');
+  const wrap = (e) => new KasaError(e && e.code ? String(e.code).toLowerCase() === 'unimplemented' ? 'native' : e.code : 'io', (e && e.message) || 'Network error');
   return {
     kind: 'native',
     async request(host, port, frame, timeoutMs) {

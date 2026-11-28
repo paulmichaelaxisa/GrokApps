@@ -8,7 +8,7 @@ Capacitor 7 Android projects for the GrokApps that have been wrapped as installa
 | Daily Learn | [`daily-learn/`](./daily-learn/) | `com.paulaxisa.dailylearn` | 1.1 (versionCode 2) |
 | Sleepy Kitten | [`sleepy-kitten/`](./sleepy-kitten/) | `com.paulaxisa.sleepykitten` | 1.0.2 (versionCode 3) |
 | Beach Bubble Pop | [`beach-bubble-pop/`](./beach-bubble-pop/) | `com.paulaxisa.beachbubblepop` | 1.0.2 (versionCode 3) |
-| Smart Home | [`smart-home/`](./smart-home/) | `com.paulaxisa.smarthome` | 1.0.0 (versionCode 1) |
+| Smart Home | [`smart-home/`](./smart-home/) | `com.paulaxisa.smarthome` | 1.0.1 (versionCode 2) |
 
 Each folder has its own README with build steps. In short:
 

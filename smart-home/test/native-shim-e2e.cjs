@@ -1,12 +1,17 @@
-// End-to-end in desktop Chrome with a fake `window.Capacitor`: the app takes its *native Android code path*
-// (nativeTransport -> SmartNet plugin calls), and a small Node bridge answers those calls with real TCP/UDP
-// sockets against the Python mock HS110s. Covers add by IP, discovery, switching, live watts, hw v1 + v2,
+// End-to-end in desktop Chrome using Capacitor's REAL Android runtime (native-bridge.js from @capacitor/android)
+// with a faked `androidBridge`: the app takes its native code path exactly as in the APK (window.Capacitor comes
+// only from native-bridge.js; there is no bundled @capacitor/core), and a small Node bridge answers the SmartNet
+// plugin calls with real TCP/UDP sockets against the Python mock HS110s.
+// Serves a folder of web assets (default: the www/ the APK is built from; pass the APK's extracted assets/public to
+// test exactly what shipped). Covers add by IP, discovery, switching, live watts, hw v1 + v2,
 // new-firmware and silent-plug errors, and takes screenshots.
-//   node test/native-shim-e2e.cjs /workspace/smart-home-shots/
+//   node test/native-shim-e2e.cjs <shots-dir> <assets-dir>
 const puppeteer = require(process.env.PUPPETEER_PATH || '/workspace/dl-tools/node_modules/puppeteer-core');
 const http = require('http'), net = require('net'), dgram = require('dgram'), { spawn } = require('child_process'), path = require('path');
 const OUT = process.argv[2] || '/workspace/smart-home-shots/';
-const APP = process.argv[3] || 'http://localhost:8811/';
+const ASSETS = process.argv[3] || path.join(__dirname, '..');
+const BRIDGE_JS = require('fs').readFileSync(path.join(__dirname, '../../android/smart-home/node_modules/@capacitor/android/capacitor/src/main/assets/native-bridge.js'), 'utf8');
+const APP = 'http://localhost:8811/';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let failed = 0;
 const check = (n, ok, x = '') => { console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : ' ' + x)); if (!ok) failed++; };
@@ -38,16 +43,13 @@ const methods = {
   async localAddresses() { return { addresses: ['192.168.1.23'] }; },
   async setChrome() { return {}; },
 };
-const bridge = http.createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Access-Control-Allow-Headers', '*');
-  if (req.method === 'OPTIONS') { res.end(); return; }
-  let body = ''; req.on('data', (d) => (body += d));
-  req.on('end', async () => {
-    const m = req.url.slice(1);
-    try { const out = await methods[m](JSON.parse(body || '{}')); res.end(JSON.stringify({ ok: out })); }
-    catch (e) { res.end(JSON.stringify({ err: { code: e.code || 'io', message: e.message } })); }
-  });
+const fs = require('fs');
+const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.mjs': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
+const stat = http.createServer((req, res) => {
+  let f = path.join(ASSETS, decodeURIComponent(req.url.split('?')[0])); if (f.endsWith('/')) f += 'index.html';
+  fs.readFile(f, (e, d) => { if (e) { res.statusCode = 404; res.end('nf'); } else { res.setHeader('Content-Type', MIME[path.extname(f)] || 'application/octet-stream'); res.end(d); } });
 });
+const bridge = { listen: (p, cb) => stat.listen(8811, cb), close: () => stat.close() };
 
 (async () => {
   await new Promise((r) => bridge.listen(8812, r));
@@ -59,19 +61,24 @@ const bridge = http.createServer((req, res) => {
   await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true });
   await p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
   const errors = [];
-  p.on('pageerror', (e) => errors.push(e.message));
+  p.on('pageerror', (e) => { errors.push(e.message); console.log('PAGE ERROR:', e.message); });
+  p.on('console', (m) => { if (m.type() === 'error') console.log('page console error:', m.text()); });
   p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await p.evaluateOnNewDocument(() => {
-    if (!sessionStorage.getItem('seen')) { sessionStorage.setItem('seen', '1'); localStorage.clear(); }
-    window.Capacitor = {
-      isNativePlatform: () => true,
-      registerPlugin: () => new Proxy({}, { get: (_, method) => async (args) => {
-        const r = await (await fetch('http://localhost:8812/' + method, { method: 'POST', body: JSON.stringify(args || {}) })).json();
-        if (r.err) { const e = new Error(r.err.message); e.code = r.err.code; throw e; }
-        return r.ok;
-      } }),
-    };
+  await p.exposeFunction('__toNative', async (json) => {
+    const call = JSON.parse(json);
+    let result;
+    try { result = { success: true, data: await methods[call.methodName](call.options) }; }
+    catch (e) { result = { success: false, error: { message: e.message, code: e.code || 'io' } }; }
+    result.callbackId = call.callbackId; result.pluginId = call.pluginId; result.methodName = call.methodName;
+    await p.evaluate((r) => window.Capacitor.fromNative(r), result).catch(() => {});
   });
+  const HEADERS = JSON.stringify([{ name: 'SmartNet', methods: ['tcpRequest', 'udpDiscover', 'tcpSweep', 'localAddresses', 'setChrome'].map((n) => ({ name: n, rtype: 'promise' })) }]);
+  await p.evaluateOnNewDocument(`
+    if (!sessionStorage.getItem('seen')) { sessionStorage.setItem('seen', '1'); localStorage.clear(); }
+    window.WEBVIEW_SERVER_URL = location.origin;
+    window.androidBridge = { postMessage: (s) => window.__toNative(s) };
+    (function (w) { var a = (w.Capacitor = w.Capacitor || {}); a.PluginHeaders = ${HEADERS}; })(window);
+  ` + BRIDGE_JS);
   await p.goto(APP);
   await sleep(1200);
   // first launch with no devices opens the add sheet by itself and searches

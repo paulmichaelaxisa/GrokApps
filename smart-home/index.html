@@ -46,6 +46,40 @@
   <div id="layers"></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
+  <!-- Startup safety net (classic script, runs first): any startup failure is shown as text, never a blank screen. -->
+  <script>
+    (function () {
+      var shown = false;
+      function show(msg) {
+        if (shown) return; shown = true;
+        var box = document.createElement('div');
+        box.setAttribute('role', 'alert');
+        box.style.cssText = 'position:fixed;inset:0;z-index:99999;overflow:auto;padding:24px 18px;background:#1b1113;color:#ffd9d9;font:14px/1.45 system-ui,sans-serif;white-space:pre-wrap;word-break:break-word';
+        var h = document.createElement('div'); h.textContent = 'Smart Home could not start'; h.style.cssText = 'font-size:20px;font-weight:700;margin-bottom:10px;color:#fff';
+        var p = document.createElement('div'); p.textContent = String(msg);
+        var ua = document.createElement('div'); ua.textContent = '\n' + navigator.userAgent; ua.style.cssText = 'opacity:.6;font-size:12px;margin-top:12px';
+        var b = document.createElement('button'); b.textContent = 'Try again'; b.style.cssText = 'margin-top:16px;padding:12px 20px;border:0;border-radius:12px;font:inherit;font-weight:700';
+        b.onclick = function () { location.reload(); };
+        box.appendChild(h); box.appendChild(p); box.appendChild(ua); box.appendChild(b);
+        (document.body || document.documentElement).appendChild(box);
+      }
+      window.__reportError = show;
+      window.addEventListener('error', function (e) {
+        var t = e.target;
+        if (t && t !== window && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) show('Could not load ' + (t.src || t.href));
+        else show((e.message || 'Script error') + (e.filename ? '\n' + e.filename + ':' + e.lineno + ':' + e.colno : '') + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        var r = e.reason; if (r && (r.code === 'timeout' || r.name === 'KasaError')) return; // device errors are handled in the UI
+        show('Unhandled error: ' + ((r && (r.stack || r.message)) || r));
+      });
+      // Nothing visible 5 s after load = the app script never ran to the end.
+      setTimeout(function () {
+        var app = document.getElementById('app'), notice = document.getElementById('notice');
+        if (app && notice && app.hidden && notice.hidden) show('The app did not finish starting (no screen was drawn).');
+      }, 5000);
+    })();
+  </script>
   <script type="module" src="app.mjs"></script>
 </body>
 </html>
