@@ -12,8 +12,12 @@ the phone over the home Wi-Fi: **no hub and no cloud**, nothing leaves the phone
 - Device grid built to grow (plug is card #1; add more device types in `DRIVERS` in `app.mjs`).
 - Big on/off toggle, live watts about every 2 s, volts, amps, lifetime kWh, last-3-minute power graph.
 - Today's and this month's kWh (and estimated cost) plus a bar chart of the plug's daily and monthly stats.
-- Add a plug by **auto-discovery** (UDP broadcast, plus a TCP sweep of the phone's /24 as a fallback) or by **IP**.
-  Devices are saved on the phone. If a plug's IP changes (DHCP), the app finds it again by MAC address.
+- Add a plug by **auto-discovery** or by **IP**. Discovery: acquire a Wi-Fi multicast lock, bind every socket to the
+  Wi-Fi Network (so traffic does not go out over mobile data), broadcast to the real subnet address plus
+  `255.255.255.255` (3 sends, listen at least 3 s), then always run a TCP sweep of the Wi-Fi subnet (not a
+  cellular one). Devices are saved on the phone. If a plug's IP changes (DHCP), the app finds it again by MAC address.
+- If discovery finds nothing, the sheet shows diagnostics: this phone's Wi-Fi IP and subnet, how many addresses were
+  swept, permission state, and any error.
 - Light/dark/auto theme, electricity price per kWh (default 0.33, currency symbol `$`).
 - Offline handling: per-card "Offline / Last seen", a banner when nothing is reachable, polite retry back-off, and
   specific hints when a plug hangs up (probably newer firmware) or never answers.
@@ -54,8 +58,12 @@ node test/native-shim-e2e.cjs               # the app's native code path with a 
 `test/mock_hs110.py` is a stand-alone mock plug: `python3 test/mock_hs110.py --host 127.0.0.2 --hw 2 --mode ok|dribble|newfw|silent`.
 
 ## Caveats
-- **Newer HS110 firmware / hardware.** This is the classic local protocol. TP-Link has been moving Kasa devices to an
-  authenticated protocol (KLAP, needs the TP-Link account) in newer firmware. If a plug accepts the connection and then
-  hangs up, or refuses port 9999, the app says its firmware may be too new. Not supported in Phase 1.
+- **Paul's plug (HS110, hardware 2.0, firmware 1.5.7) uses the classic XOR protocol, not KLAP.** OpenHAB issue
+  [#9826](https://github.com/openhab/openhab-addons/issues/9826) lists hardware 2.1 / firmware 1.5.7 as working with
+  the port-9999 binding. KLAP (HTTP on port 80) landed on *newer* hardware: HS110 hardware 4.1 firmware 1.1.0 broke
+  local control, and the 2021 Kasa KLAP rollout "only seemed to affect UK HS100 models" at first
+  ([python-kasa](https://python-kasa.readthedocs.io/)). Hardware 2.0 firmware 1.5.7 is the generation *before* that.
+  If a plug accepts the connection and then hangs up, or refuses port 9999, the app still says its firmware may be too
+  new — that should not apply to this plug.
 - Works only on the same Wi-Fi as the plug, and logs live history only while the app is open (the plug itself keeps the
   per-day/per-month kWh totals, which is what the charts use).

@@ -216,12 +216,16 @@ export class Hs110Client {
 
   /**
    * Find Kasa devices on the LAN: UDP broadcast first, then (unless disabled) a TCP sweep of the
-   * phone's subnet in case the router filters broadcasts. Returns [{host, info}] de-duplicated by host.
+   * Wi-Fi subnet in case the router filters broadcasts.
+   * Returns { devices: [{host, info}], diagnostics }.
    */
-  async discover({ timeoutMs = 2500, sweep = true, hosts } = {}) {
+  async discover({ timeoutMs = 3500, sweep = true, hosts } = {}) {
     const found = new Map();
+    let diagnostics = {};
     const take = (replies, framed) => {
-      for (const r of replies || []) {
+      const list = Array.isArray(replies) ? replies : [];
+      if (replies && replies.diagnostics) diagnostics = { ...diagnostics, ...replies.diagnostics };
+      for (const r of list) {
         if (found.has(r.host)) continue;
         try {
           const text = framed ? decryptFrame(r.data) : decrypt(r.data);
@@ -230,14 +234,37 @@ export class Hs110Client {
         } catch (e) { /* not a Kasa device */ }
       }
     };
+    if (this.t.prepare) {
+      try { diagnostics = { ...diagnostics, ...(await this.t.prepare()) }; } catch (e) {
+        diagnostics.errors = (diagnostics.errors || []).concat([String(e && e.message || e)]);
+      }
+    }
+    if (this.t.discoverAll) {
+      try {
+        const r = await this.t.discoverAll(encrypt(JSON.stringify(Cmd.sysinfo())), encryptFrame(JSON.stringify(Cmd.sysinfo())), { port: PORT, timeoutMs, sweep });
+        if (r.diagnostics) diagnostics = { ...diagnostics, ...r.diagnostics };
+        take(r.udp, false);
+        take(r.tcp, true);
+      } catch (e) {
+        diagnostics.errors = (diagnostics.errors || []).concat([String(e && e.message || e)]);
+      }
+      return { devices: [...found.values()], diagnostics };
+    }
     const udp = this.t.broadcast
-      ? this.t.broadcast(encrypt(JSON.stringify(Cmd.sysinfo())), PORT, timeoutMs).then((r) => take(r, false), () => {})
+      ? this.t.broadcast(encrypt(JSON.stringify(Cmd.sysinfo())), PORT, timeoutMs).then((r) => take(r, false), (e) => {
+          diagnostics.errors = (diagnostics.errors || []).concat(['UDP: ' + (e && e.message || e)]);
+        })
       : Promise.resolve();
     const tcp = sweep && this.t.sweep
-      ? this.t.sweep(encryptFrame(JSON.stringify(Cmd.sysinfo())), PORT, 700, hosts).then((r) => take(r, true), () => {})
+      ? this.t.sweep(encryptFrame(JSON.stringify(Cmd.sysinfo())), PORT, 700, hosts).then((r) => {
+          take(r, true);
+          if (!diagnostics.hostsSwept && hosts) diagnostics.hostsSwept = hosts.length;
+        }, (e) => {
+          diagnostics.errors = (diagnostics.errors || []).concat(['TCP sweep: ' + (e && e.message || e)]);
+        })
       : Promise.resolve();
     await Promise.all([udp, tcp]);
-    return [...found.values()];
+    return { devices: [...found.values()], diagnostics };
   }
 }
 
@@ -261,6 +288,7 @@ export function describeError(e) {
     case 'device': return (e && e.message) || 'The plug reported an error.';
     case 'unsupported': return (e && e.message) || 'Not supported by this device.';
     case 'native': return 'This needs the Android app.';
+    case 'permission': return "The phone blocked access to the local network. Check the app's Wi-Fi or nearby-devices permission in Settings.";
     default: return (e && e.message) || 'Something went wrong talking to the plug.';
   }
 }

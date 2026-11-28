@@ -3,13 +3,19 @@
 Capacitor 7 wrapper around the [Smart Home](../../smart-home/) web app, plus a small native plugin for raw TCP/UDP.
 
 - **Application ID:** `com.paulaxisa.smarthome`
-- **Version in this tree:** 1.0.1 (versionCode 2)
-- **Permissions:** `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_STATE`, `ACCESS_LOCAL_NETWORK`
-  (Android 17's local-network permission; ignored on older versions). Plain sockets are not affected by cleartext/HTTP rules.
+- **Version in this tree:** 1.0.2 (versionCode 3)
+- **Permissions:** `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_STATE`,
+  `ACCESS_FINE_LOCATION` + `ACCESS_COARSE_LOCATION` (Samsung and older Android often need these to expose Wi-Fi info),
+  `NEARBY_WIFI_DEVICES` (Android 13+, `neverForLocation`; location is requested separately for the SSID).
+  `ACCESS_LOCAL_NETWORK` is **not** declared: this app targets API 35, and Android docs say local-network access is
+  already granted via `INTERNET` until you target API 37
+  (https://developer.android.com/privacy-and-security/local-network-permission). On API 33+ the plugin requests
+  nearby-Wi-Fi at runtime; location is requested on all versions.
 - **Native plugin `SmartNet`** (`android/app/src/main/java/com/paulaxisa/smarthome/`):
   `NetCore.java` is plain Java (testable on a JVM), `SmartNetPlugin.java` is the Capacitor wrapper.
-  Methods: `tcpRequest` (one framed request, one framed reply), `udpDiscover` (broadcast), `tcpSweep` (probe the phone's /24),
-  `localAddresses`, `setChrome` (colours the status/navigation bar strips to match the theme; the app runs edge-to-edge).
+  Methods: `prepare` (runtime permission request + Wi-Fi snapshot), `discover` (multicast lock, 3× UDP broadcast to the
+  subnet address + 255.255.255.255 for ≥3 s, then a TCP /24 sweep of the *Wi-Fi* subnet; every socket is bound to the
+  Wi-Fi Network), `tcpRequest`, `udpDiscover`, `tcpSweep`, `localAddresses`, `setChrome`.
   The cipher and JSON live in the web app, the plugin only moves bytes (base64 over the bridge).
 - **Calling the plugin from JS:** the web app has no bundler, so `window.Capacitor` is only what `native-bridge.js` provides:
   use `Capacitor.nativePromise('SmartNet', method, args)` (see `capacitorPlugin()` in `smart-home/transport.mjs`). There is **no

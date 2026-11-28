@@ -81,6 +81,23 @@ public class NetCoreTest {
         for (NetCore.Reply x : udp) hosts.append(x.host).append(' ');
         check("udpDiscover broadcast reaches a listening plug (" + hosts.toString().trim() + ")", udp.size() >= 1 && dec(udp.get(0).data, 0).contains("alias"), hosts.toString());
 
+        // subnet helpers
+        List<String> subnet = NetCore.hostsOnSubnet("192.168.1.50", 24);
+        check(" /24 sweep has 253 hosts and skips the phone", subnet.size() == 253 && !subnet.contains("192.168.1.50") && subnet.contains("192.168.1.1") && subnet.contains("192.168.1.254"), String.valueOf(subnet.size()));
+        check("broadcast of /24", "192.168.1.255".equals(NetCore.broadcastOf("192.168.1.50", 24)), NetCore.broadcastOf("192.168.1.50", 24));
+        check("cidr of /24", "192.168.1.0/24".equals(NetCore.networkCidr("192.168.1.50", 24)), NetCore.networkCidr("192.168.1.50", 24));
+        List<String> narrow = NetCore.hostsOnSubnet("10.0.0.5", 16);
+        check("wide /16 is narrowed to the /24 containing the phone", narrow.size() == 253 && narrow.contains("10.0.0.1") && !narrow.contains("10.0.1.1"), String.valueOf(narrow.size()));
+        check("looksLikeWifi filters cellular", NetCore.looksLikeWifi("wlan0") && NetCore.looksLikeWifi("swlan0") && !NetCore.looksLikeWifi("rmnet0") && !NetCore.looksLikeWifi("ccmni0") && !NetCore.looksLikeWifi("tun0"), "");
+
+        final int[] preps = {0};
+        NetCore.SocketPrep counter = new NetCore.SocketPrep() {
+            public void prepareTcp(java.net.Socket s) { preps[0]++; }
+            public void prepareUdp(java.net.DatagramSocket s) { preps[0]++; }
+        };
+        NetCore.tcpRequest("127.0.0.2", 9999, sys, 2000, counter);
+        check("SocketPrep is called for TCP", preps[0] == 1, String.valueOf(preps[0]));
+
         System.out.println("local IPv4: " + NetCore.localIPv4() + ", sweep hosts: " + NetCore.subnetHosts().size());
         System.out.println(failed == 0 ? "ALL PASSED" : failed + " FAILED");
         System.exit(failed == 0 ? 0 : 1);

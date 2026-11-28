@@ -37,10 +37,21 @@ export function capacitorPlugin(name) {
 }
 
 /** Raw TCP/UDP through the SmartNet Capacitor plugin (Android only). */
+function decodeReplies(list) {
+  return (list || []).map((x) => ({ host: x.host, data: fromB64(x.data) }));
+}
+
 export function nativeTransport(plugin) {
-  const wrap = (e) => new KasaError(e && e.code ? String(e.code).toLowerCase() === 'unimplemented' ? 'native' : e.code : 'io', (e && e.message) || 'Network error');
+  const wrap = (e) => {
+    const raw = e && e.code ? String(e.code) : '';
+    const code = raw.toLowerCase() === 'unimplemented' ? 'native' : (raw || 'io');
+    return new KasaError(code, (e && e.message) || 'Network error');
+  };
   return {
     kind: 'native',
+    async prepare() {
+      try { return (await plugin.prepare()) || {}; } catch (e) { return { errors: [String(e && e.message || e)] }; }
+    },
     async request(host, port, frame, timeoutMs) {
       try {
         const r = await plugin.tcpRequest({ host, port, data: toB64(frame), timeoutMs });
@@ -49,13 +60,22 @@ export function nativeTransport(plugin) {
     },
     async broadcast(payload, port, timeoutMs) {
       const r = await plugin.udpDiscover({ data: toB64(payload), port, timeoutMs });
-      return (r.replies || []).map((x) => ({ host: x.host, data: fromB64(x.data) }));
+      const list = decodeReplies(r.replies);
+      list.diagnostics = r.diagnostics;
+      return list;
     },
     async sweep(frame, port, timeoutMs, hosts) {
       const args = { data: toB64(frame), port, timeoutMs };
       if (hosts) args.hosts = hosts;
       const r = await plugin.tcpSweep(args);
-      return (r.replies || []).map((x) => ({ host: x.host, data: fromB64(x.data) }));
+      const list = decodeReplies(r.replies);
+      list.diagnostics = r.diagnostics;
+      return list;
+    },
+    /** Combined UDP + TCP sweep on the Wi-Fi network, with diagnostics. */
+    async discoverAll(udpPayload, tcpFrame, { port, timeoutMs, sweep } = {}) {
+      const r = await plugin.discover({ udp: toB64(udpPayload), tcp: toB64(tcpFrame), port, timeoutMs, sweep: sweep !== false });
+      return { udp: decodeReplies(r.udp), tcp: decodeReplies(r.tcp), diagnostics: r.diagnostics || {} };
     },
     async localAddresses() {
       try { return (await plugin.localAddresses()).addresses || []; } catch (e) { return []; }

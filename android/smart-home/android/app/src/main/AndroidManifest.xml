@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -42,6 +43,14 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
-    <!-- Android 17+ asks before an app reaches devices on the local network. Older versions ignore this. -->
-    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <!-- Samsung and older Android often need location to expose Wi-Fi info (SSID, sometimes DHCP). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Android 13+: nearby Wi-Fi devices. neverForLocation: we request FINE_LOCATION separately for the SSID. -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <!-- ACCESS_LOCAL_NETWORK is only required when targeting API 37 (Android 17). This app targets 35,
+         so INTERNET already grants local-network access. Do not declare or request it yet
+         (https://developer.android.com/privacy-and-security/local-network-permission). -->
 </manifest>

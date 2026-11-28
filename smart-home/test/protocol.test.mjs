@@ -139,15 +139,16 @@ test('errors: hang-up (new firmware), silence, nothing listening', async () => {
 });
 
 test('discovery: UDP broadcast finds both versions, ignores the ones that do not talk', async () => {
-  const found = await client().discover({ timeoutMs: 800, sweep: false });
+  const { devices: found, diagnostics } = await client().discover({ timeoutMs: 800, sweep: false });
   const hosts = found.map((f) => f.host).sort();
   assert.ok(hosts.includes('127.0.0.2') && hosts.includes('127.0.0.3') && hosts.includes('127.0.0.4'), hosts.join());
   assert.equal(found.find((f) => f.host === '127.0.0.3').info.hwVer, '2.0');
+  assert.equal(typeof diagnostics, 'object');
 });
 
 test('discovery: TCP sweep fallback finds plugs when broadcast is filtered', async () => {
   const t = nodeTransport({ udpTargets: [], sweepHosts: ['127.0.0.2', '127.0.0.3', '127.0.0.5', '127.0.0.7'] });
-  const found = await new Hs110Client(t).discover({ timeoutMs: 300 });
+  const { devices: found } = await new Hs110Client(t).discover({ timeoutMs: 300 });
   assert.deepEqual(found.map((f) => f.host).sort(), ['127.0.0.2', '127.0.0.3']);
 });
 
@@ -160,5 +161,5 @@ test('in-app simulator speaks the same protocol (demo mode)', async () => {
   await c.setRelay('10.0.0.2', true);
   assert.equal((await c.poll('10.0.0.2')).info.relayOn, true);
   const d = await c.discover({ timeoutMs: 100 });
-  assert.equal(d.length, 2);
+  assert.equal(d.devices.length, 2);
 });

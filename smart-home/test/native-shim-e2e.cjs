@@ -30,17 +30,30 @@ function tcpRequest({ host, port = 9999, data, timeoutMs = 3000 }) {
     s.on('close', () => fin({ code: 'closed', message: 'Device closed the connection' }));
   });
 }
+async function udpDiscover({ data, port = 9999, timeoutMs = 3500 }) {
+  return new Promise((resolve) => {
+    const sock = dgram.createSocket('udp4'); const replies = [];
+    sock.on('message', (m, r) => replies.push({ host: r.address, data: m.toString('base64') }));
+    sock.bind(0, () => {
+      sock.setBroadcast(true);
+      const targets = ['127.0.0.2', '127.0.0.3', '127.0.0.4'];
+      for (let i = 0; i < 3; i++) setTimeout(() => { for (const t of targets) sock.send(b64(data), port, t); }, i * 200);
+      setTimeout(() => { sock.close(); resolve({ replies, diagnostics: FAKE_DIAG }); }, Math.min(timeoutMs, 900));
+    });
+  });
+}
+const FAKE_DIAG = { wifiIp: '192.168.1.23', subnet: '192.168.1.0/24', ssid: 'WiFi-D7F5', onWifi: true, wifiBound: true, multicastLock: true, udpSends: 3, udpListenMs: 3500, udpReplies: 0, hostsSwept: 0, tcpHits: 0, broadcast: ['192.168.1.255', '255.255.255.255'], permissions: { nearbyWifi: 'granted', location: 'granted', localNetwork: 'not-required (targetSdk 35)' }, errors: [] };
 const methods = {
   tcpRequest,
-  async udpDiscover({ data, port = 9999, timeoutMs = 2500 }) {
-    return new Promise((resolve) => {
-      const sock = dgram.createSocket('udp4'); const replies = [];
-      sock.on('message', (m, r) => replies.push({ host: r.address, data: m.toString('base64') }));
-      sock.bind(0, () => { sock.setBroadcast(true); for (const t of ['127.0.0.2', '127.0.0.3', '127.0.0.4']) sock.send(b64(data), port, t); setTimeout(() => { sock.close(); resolve({ replies }); }, Math.min(timeoutMs, 900)); });
-    });
+  udpDiscover,
+  async tcpSweep() { return { replies: [], diagnostics: FAKE_DIAG }; },
+  async prepare() { return { ...FAKE_DIAG }; },
+  async discover({ udp, tcp, timeoutMs, sweep }) {
+    const u = await udpDiscover({ data: udp, timeoutMs });
+    const diag = { ...FAKE_DIAG, udpReplies: u.replies.length, hostsSwept: sweep === false ? 0 : 0, tcpHits: 0 };
+    return { udp: u.replies, tcp: [], diagnostics: diag };
   },
-  async tcpSweep() { return { replies: [] }; },
-  async localAddresses() { return { addresses: ['192.168.1.23'] }; },
+  async localAddresses() { return { addresses: ['192.168.1.23'], diagnostics: FAKE_DIAG }; },
   async setChrome() { return {}; },
 };
 const fs = require('fs');
@@ -72,7 +85,7 @@ const bridge = { listen: (p, cb) => stat.listen(8811, cb), close: () => stat.clo
     result.callbackId = call.callbackId; result.pluginId = call.pluginId; result.methodName = call.methodName;
     await p.evaluate((r) => window.Capacitor.fromNative(r), result).catch(() => {});
   });
-  const HEADERS = JSON.stringify([{ name: 'SmartNet', methods: ['tcpRequest', 'udpDiscover', 'tcpSweep', 'localAddresses', 'setChrome'].map((n) => ({ name: n, rtype: 'promise' })) }]);
+  const HEADERS = JSON.stringify([{ name: 'SmartNet', methods: ['tcpRequest', 'udpDiscover', 'tcpSweep', 'localAddresses', 'setChrome', 'prepare', 'discover'].map((n) => ({ name: n, rtype: 'promise' })) }]);
   await p.evaluateOnNewDocument(`
     if (!sessionStorage.getItem('seen')) { sessionStorage.setItem('seen', '1'); localStorage.clear(); }
     window.WEBVIEW_SERVER_URL = location.origin;
@@ -82,7 +95,7 @@ const bridge = { listen: (p, cb) => stat.listen(8811, cb), close: () => stat.clo
   await p.goto(APP);
   await sleep(1200);
   // first launch with no devices opens the add sheet by itself and searches
-  check('first launch opens Add device and finds both mock plugs by discovery', await (async () => { await sleep(2500); const n = await p.$$eval('.result .dev-name', (e) => e.map((x) => x.textContent)); return n.includes('Office Heater') && n.includes('Living Room TV'); })());
+  check('first launch opens Add device and finds both mock plugs by discovery', await (async () => { await sleep(4000); const n = await p.$$eval('.result .dev-name', (e) => e.map((x) => x.textContent)); return n.includes('Office Heater') && n.includes('Living Room TV'); })());
   await p.screenshot({ path: OUT + '20-native-add-discovery-dark.png' });
   await p.evaluate(() => [...document.querySelectorAll('.result')].find((r) => /Office Heater/.test(r.textContent)).querySelector('.btn').click()); await sleep(1200);
   check('adding from discovery puts a card on the dashboard', (await p.$$('.device')).length === 1);

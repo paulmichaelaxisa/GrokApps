@@ -38,7 +38,7 @@ async function run(name, dir, port, { plugin }, fn) {
     const result = { success: false, error: { message: '"SmartNet" plugin is not implemented on android', code: 'UNIMPLEMENTED' }, callbackId: call.callbackId, pluginId: call.pluginId, methodName: call.methodName };
     await p.evaluate((r) => window.Capacitor.fromNative(r), result).catch(() => {});
   });
-  const headers = plugin ? JSON.stringify([{ name: 'SmartNet', methods: ['tcpRequest', 'udpDiscover', 'tcpSweep', 'localAddresses', 'setChrome'].map((n) => ({ name: n, rtype: 'promise' })) }]) : '[]';
+  const headers = plugin ? JSON.stringify([{ name: 'SmartNet', methods: ['tcpRequest', 'udpDiscover', 'tcpSweep', 'localAddresses', 'setChrome', 'prepare', 'discover'].map((n) => ({ name: n, rtype: 'promise' })) }]) : '[]';
   await p.evaluateOnNewDocument(`window.WEBVIEW_SERVER_URL = location.origin; window.androidBridge = { postMessage: (s) => window.__toNative(s) };
     (function (w) { var a = (w.Capacitor = w.Capacitor || {}); a.PluginHeaders = ${headers}; })(window);` + BRIDGE_JS);
   await p.goto(`http://localhost:${port}/`);

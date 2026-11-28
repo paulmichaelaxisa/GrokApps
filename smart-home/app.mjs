@@ -5,7 +5,7 @@ import { SimPlug, simTransport } from './sim.mjs';
 import { createStore } from './store.mjs';
 import { barChart, sparkline } from './charts.mjs';
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 const POLL_MS = 2000;
 const STATS_MS = 60000;
 const HIST_MAX = 90; // ~3 minutes of live readings kept in memory
@@ -217,7 +217,7 @@ async function rediscoverLoop() {
     if (!lost.length) return;
     rediscovering = true;
     try {
-      const found = await client.discover({ timeoutMs: 2000, sweep: false });
+      const { devices: found } = await client.discover({ timeoutMs: 3500, sweep: true });
       for (const dev of lost) {
         const hit = found.find((f) => f.info.mac && f.info.mac === dev.mac && f.host !== dev.host);
         if (hit) { dev.host = hit.host; store.saveDevices(); toast(`${dev.name} moved to ${hit.host}`); schedule(dev.id, 0); }
@@ -409,6 +409,44 @@ function sheet(title, body, { onClose } = {}) {
 }
 
 // ---- Add device -----------------------------------------------------------------------------------
+
+function permLabel(v) {
+  if (!v || v === 'not-applicable' || v === 'not-requested') return '';
+  if (v.indexOf('not-required') === 0) return 'not needed';
+  return v;
+}
+function showDiagnostics(el, d) {
+  if (!el) return;
+  d = d || {};
+  const lines = [];
+  const perms = d.permissions || {};
+  const ip = d.wifiIp || (Array.isArray(d.addresses) && d.addresses[0]) || '';
+  const ssid = d.ssid ? ' on ' + d.ssid : '';
+  if (ip) lines.push('This phone: ' + ip + (d.subnet ? ' (' + d.subnet + ')' : '') + ssid + '.');
+  else if (d.onWifi === false) lines.push("This phone doesn't appear to be on Wi-Fi. Connect to the same network as the plug and try again.");
+  else lines.push("Couldn't read this phone's Wi-Fi address.");
+  const bits = [];
+  if (d.udpListenMs) bits.push('listened ' + Math.round(d.udpListenMs / 100) / 10 + ' s' + (d.udpSends ? ' and sent the search ' + d.udpSends + ' times' : ''));
+  if (d.broadcast && d.broadcast.length) bits.push('broadcast to ' + d.broadcast.join(', '));
+  const swept = d.hostsSwept != null ? d.hostsSwept : 0;
+  if (swept) bits.push('checked ' + swept + ' address' + (swept === 1 ? '' : 'es') + ' on the subnet' + (d.tcpHits ? ' (found ' + d.tcpHits + ')' : ''));
+  else bits.push('the subnet sweep had no addresses to check');
+  if (bits.length) lines.push('Search: ' + bits.join('; ') + '.');
+  if (d.wifiBound === false && d.onWifi) lines.push('Could not bind sockets to Wi-Fi (traffic may have gone over mobile data).');
+  else if (d.wifiBound) lines.push('Sockets were bound to Wi-Fi.');
+  if (d.multicastLock === false) lines.push('The Wi-Fi multicast lock was not held, so broadcast replies may have been dropped.');
+  const pl = [];
+  if (permLabel(perms.location)) pl.push('location ' + permLabel(perms.location));
+  if (permLabel(perms.nearbyWifi)) pl.push('nearby Wi-Fi ' + permLabel(perms.nearbyWifi));
+  if (permLabel(perms.localNetwork) && permLabel(perms.localNetwork) !== 'not needed') pl.push('local network ' + permLabel(perms.localNetwork));
+  if (pl.length) lines.push('Permissions: ' + pl.join(', ') + '.');
+  if (perms.location === 'denied') lines.push('Location permission was denied. On some Samsung phones this hides Wi-Fi details — you can grant it in Settings, or use Enter IP.');
+  const errs = d.errors || [];
+  if (errs.length) lines.push('Details: ' + errs.join(' · '));
+  el.textContent = lines.join('\n');
+  el.hidden = false;
+}
+
 function openAddSheet() {
   const results = h('div', { class: 'results' });
   const status = h('p', { class: 'muted center' });
@@ -443,18 +481,36 @@ function openAddSheet() {
     return dev;
   }
 
+  const diagBox = h('div', { class: 'diag', hidden: true });
+  findPane.append(diagBox);
+
   let scanId = 0;
   async function scan() {
     const my = ++scanId;
     results.textContent = '';
+    diagBox.hidden = true;
+    diagBox.textContent = '';
     scanBtn.disabled = true;
-    status.innerHTML = '<span class="spinner"></span> Looking for plugs on your Wi-Fi…';
-    let found = [];
-    try { found = await client.discover({ timeoutMs: 2500 }); } catch (e) { if (my === scanId) status.textContent = describeError(e); }
+    status.innerHTML = '<span class="spinner"></span> Checking Wi-Fi permissions…';
+    let found = [], diagnostics = {};
+    try {
+      if (transport.prepare) await transport.prepare();
+      if (my !== scanId) return;
+      status.innerHTML = '<span class="spinner"></span> Looking for plugs on your Wi-Fi…';
+      const r = await client.discover({ timeoutMs: 3500, sweep: true });
+      found = r.devices || [];
+      diagnostics = r.diagnostics || {};
+    } catch (e) {
+      if (my === scanId) {
+        status.textContent = describeError(e);
+        showDiagnostics(diagBox, diagnostics);
+      }
+    }
     if (my !== scanId) return;
     scanBtn.disabled = false;
     if (!found.length) {
-      status.textContent = "Didn't find any plugs. Check your phone is on the home Wi-Fi, or use Enter IP.";
+      status.textContent = "Didn't find any plugs. Check the plug has power, or use Enter IP.";
+      showDiagnostics(diagBox, diagnostics);
       return;
     }
     status.textContent = `Found ${found.length} device${found.length === 1 ? '' : 's'}`;
